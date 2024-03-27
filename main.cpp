@@ -4,9 +4,6 @@
 
 #include <iostream>
 
-#include "move.h"
-#include "my_class.h"
-
 using namespace std;
 
 int main()
