@@ -1,0 +1,7 @@
+# MyClass
+
+---
+
+** Description. **
+
+---
