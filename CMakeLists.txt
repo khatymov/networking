@@ -13,11 +13,25 @@ IF (Boost_FOUND)
     ADD_DEFINITIONS( "-DHAS_BOOST" )
 ENDIF()
 
+include_directories(
+        ${CMAKE_CURRENT_SOURCE_DIR}/externals/spdlog/include
+)
+
+include(${CMAKE_CURRENT_LIST_DIR}/app/common/common.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/app/server/server.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/app/connection/connection.cmake)
+
 add_executable(${PROJECT_NAME}
                 main.cpp
+                ${COMMON}
+                ${CONNECTION}
+                ${SERVER}
+
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
+
+add_subdirectory(tests)
 
 
 target_link_libraries(${PROJECT_NAME} boost::boost)

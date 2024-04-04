@@ -3,7 +3,7 @@
 CLASS_NAME=$1
 OUT_PATH=$2
 
-[[ -z $CLASS_NAME ]] && echo -e "\e[44mEmpty arg CLASS_NAME\e[0m" && exit 1 
+[[ -z $CLASS_NAME ]] && echo -e "\e[44mEmpty arg CLASS_NAME\e[0m" && exit 1
 [[ -z $OUT_PATH ]] && echo -e "\e[44mEmpty arg OUT_PATH\e[0m" && exit 1
 
 #----------------------------------------------------------------------------------------
@@ -13,7 +13,7 @@ upper_case=$(echo "${lower_case^^}")
 
 #----------------------------------------------------------------------------------------
 
-if [ -d $OUT_PATH/$lower_case ]; 
+if [ -d $OUT_PATH/$lower_case ];
 then
     echo "The $OUT_PATH/$lower_case directory already is." && exit 1
 else
@@ -68,15 +68,14 @@ text=$(cat <<-END
 /*! \class $CLASS_NAME
  * \brief Some briefing
  */
-class $CLASS_NAME
-{
+class $CLASS_NAME {
     $CLASS_NAME(const $CLASS_NAME&) = delete;
     $CLASS_NAME($CLASS_NAME&&) = delete;
     $CLASS_NAME operator=(const $CLASS_NAME&) = delete;
     $CLASS_NAME operator=($CLASS_NAME&&) = delete;
 public:
 
-    //! \brief default constructor.    
+    //! \brief default constructor.
     $CLASS_NAME();
 
     //! \brief default destructor.
@@ -85,7 +84,6 @@ public:
 private:
 
     //! List of private variables.
-
 };
 
 END
@@ -106,8 +104,7 @@ text=$(cat <<-END
 
 using namespace std;
 
-$CLASS_NAME::$CLASS_NAME()
-{}
+$CLASS_NAME::$CLASS_NAME() {}
 
 END
 )
