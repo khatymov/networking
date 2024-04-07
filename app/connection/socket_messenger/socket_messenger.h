@@ -14,7 +14,7 @@ using boost::asio::write;
 using boost::system::error_code;
 
 
-static bool writeToSocket(ip::tcp::socket& socket, const Packet& packet, boost::system::error_code& ec) {
+[[nodiscard]] static bool writeToSocket(ip::tcp::socket& socket, const Packet& packet, boost::system::error_code& ec) {
     //send header
     write(socket, boost::asio::buffer(&packet.header, sizeof(packet.header)), transfer_exactly(sizeof(packet.header)), ec);
     if (ec)
@@ -35,7 +35,7 @@ static bool writeToSocket(ip::tcp::socket& socket, const Packet& packet, boost::
     return true;
 }
 
-static bool readFromSocket(ip::tcp::socket& socket, Packet& packet, boost::system::error_code& ec) {
+[[nodiscard]] static bool readFromSocket(ip::tcp::socket& socket, Packet& packet, boost::system::error_code& ec) {
     //read header
     auto head_size = read(socket, buffer(&packet.header, sizeof(packet.header)), transfer_exactly(sizeof(packet.header)), ec);
 

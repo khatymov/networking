@@ -20,13 +20,14 @@ include_directories(
 include(${CMAKE_CURRENT_LIST_DIR}/app/common/common.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/app/server/server.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/app/connection/connection.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/app/file/file.cmake)
 
 add_executable(${PROJECT_NAME}
                 main.cpp
                 ${COMMON}
                 ${CONNECTION}
                 ${SERVER}
-
+                ${FILE}
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)

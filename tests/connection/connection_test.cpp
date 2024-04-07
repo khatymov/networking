@@ -60,7 +60,6 @@ public:
         packet.header.type = Packet::Type::Exit;
         packet.header.length = 0;
         boost::system::error_code ec;
-//        this_thread::sleep_for(std::chrono::milliseconds(200));
         spdlog::debug("Client, wait ping");
         //wait for ping packet
         if (!readFromSocket(m_socket, packet, ec)) {
@@ -190,7 +189,57 @@ TEST(test_file_writer_connection, test_process) {
 }
 
 //Get a message and print it
-TEST(test_connection, test_ping_pong) {
+TEST(test_file_writer_connection, test_ping_pong) {
+    io_context ioContext;
+    tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
+
+    tcp::acceptor myAcceptor(ioContext, endpoint);
+    myAcceptor.async_accept([&] (boost::system::error_code ec, tcp::socket socket) {
+        if (!ec) {
+            spdlog::info("New connection");
+            std::shared_ptr<FileWriterConnection> newConnection = std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
+            if (newConnection->ConnectToClient()) {
+                EXPECT_TRUE(newConnection->isPingable());
+            }
+        } else {
+            spdlog::error("Error has occurred during acceptance: {}", ec.message());
+        }
+    });
+
+    auto future = std::async(std::launch::async, checkPingPong);
+
+    ioContext.run();
+    auto isPongable = future.get();
+    EXPECT_TRUE(isPongable);
+}
+
+//Get a message and print it
+TEST(test_file_writer_connection, test_ping_pong_unique) {
+    io_context ioContext;
+    tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
+
+    tcp::acceptor myAcceptor(ioContext, endpoint);
+    myAcceptor.async_accept([&] (boost::system::error_code ec, tcp::socket socket) {
+        if (!ec) {
+            spdlog::info("New connection");
+            std::unique_ptr<FileWriterConnection> newConnection = std::make_unique<FileWriterConnection>(ioContext, std::move(socket));
+            if (newConnection->ConnectToClient()) {
+                EXPECT_TRUE(newConnection->isPingable());
+            }
+        } else {
+            spdlog::error("Error has occurred during acceptance: {}", ec.message());
+        }
+    });
+
+    auto future = std::async(std::launch::async, checkPingPong);
+
+    ioContext.run();
+    auto isPongable = future.get();
+    EXPECT_TRUE(isPongable);
+}
+
+//Get a message and print it
+TEST(test_file_writer_connection, test_file) {
     io_context ioContext;
     tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
 

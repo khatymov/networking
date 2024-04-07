@@ -9,7 +9,7 @@
 #pragma once
 
 #include "connection_interface.h"
-
+#include "file_handler.h"
 /*! \class FileWriterConnection
  * \brief Some briefing
  */
@@ -35,5 +35,6 @@ public:
     bool isPingable();
 private:
 
+    FileHandler fileHandler;
     //! List of private variables.
 };
