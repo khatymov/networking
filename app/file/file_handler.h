@@ -35,7 +35,10 @@ public:
     static bool isFileExist(const std::string& fileName);
 
     static std::string getUniqueName(const std::string& fileName);
+
+    static std::string getFileHash(const std::string& fileName);
 private:
+
 
     //! List of private variables.
 };

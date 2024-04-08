@@ -74,9 +74,13 @@ void FileWriterConnection::FileProcess()
     Packet packet;
     boost::system::error_code ec;
 
+    Packet ack_packet;
+    ack_packet.header.length = 0;
+    ack_packet.header.type = Packet::Type::Ack;
+
     while (getSocket().is_open()) {
         if (!readFromSocket(getSocket(), packet, ec)) {
-            continue;
+            getSocket().close();
         }
 
         switch (packet.header.type)
@@ -93,20 +97,30 @@ void FileWriterConnection::FileProcess()
 
                 fileHandler.open(fileName, "w");
 
+                if (!writeToSocket(getSocket(), ack_packet, ec)) {
+                    return;
+                }
+
                 break;
             };
             case (Packet::Type::FileData): {
                 // at this step we write data from socket to file
                 spdlog::debug("Read from socket and write to the file");
-                // read(socket, packet)
-                // fileHandler.write(packet.data
 
+                fileHandler.write(packet);
+                if (!writeToSocket(getSocket(), ack_packet, ec)) {
+                    return;
+                }
                 break;
             };
             case (Packet::Type::Hash): {
                 // at this step we generate a hash for current file and compare it with a hash that client sent to us
                 spdlog::debug("Generate a hash from file");
-
+                auto hash = fileHandler.getFileHash(fileHandler.getFilename());
+                auto clientFileHash = string(packet.payload);
+                if (hash != clientFileHash) {
+                    spdlog::error("Client file hash and our hash is different: {} vs {}", clientFileHash, hash);
+                }
                 break;
             };
             case (Packet::Type::Exit): {

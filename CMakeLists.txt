@@ -35,4 +35,4 @@ target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
 add_subdirectory(tests)
 
 
-target_link_libraries(${PROJECT_NAME} boost::boost)
+target_link_libraries(${PROJECT_NAME} boost::boost -lcrypto)

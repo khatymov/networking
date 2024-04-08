@@ -27,6 +27,7 @@ add_executable(
 target_link_libraries(
         ${PROJECT_NAME}
         gtest
+        -lcrypto
 )
 
 enable_testing()

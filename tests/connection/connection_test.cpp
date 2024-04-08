@@ -80,11 +80,96 @@ public:
         return packet.header.type == Packet::Type::Pong;
     }
 
+    bool sendFileNamePacket() {
+        Packet packet;
+        packet.header.type = Packet::Type::FileName;
+        std::string name("tmp.txt");
+        packet.header.length = name.size();
+        memcpy(packet.payload, name.c_str(), name.size());
+        boost::system::error_code ec;
+        if (!writeToSocket(m_socket, packet, ec)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool fullCycle(const std::string& fileName) {
+        FileHandler fileHandler;
+        if (fileHandler.isFileExist(fileName)) {
+            spdlog::error("File doesn't exist");
+//            return false;
+        }
+
+        fileHandler.open(fileName, "rb");
+
+        Packet packet;
+        packet.header.type = Packet::Type::FileName;
+        packet.header.length = fileName.size();
+        memcpy(packet.payload, fileName.c_str(), fileName.size());
+        boost::system::error_code ec;
+        if (!writeToSocket(m_socket, packet, ec)) {
+            return false;
+        }
+
+        if (!readFromSocket(m_socket, packet, ec)) {
+            spdlog::debug("Didn't get ack pack Packet::Type::FileName {}", packet.header.length);
+        } else if (packet.header.type == Packet::Type::Ack) {
+            spdlog::debug("ACK PACK Packet::Type::FileName {}", packet.header.length);
+        }
+
+        do {
+            fileHandler.read(packet);
+            packet.header.type = Packet::Type::FileData;
+            const bool everything_done = packet.header.length == 0;
+
+            if (everything_done)
+            {
+                break;
+            }
+
+            if (!writeToSocket(m_socket, packet, ec)) {
+                return false;
+            }
+
+            if (!readFromSocket(m_socket, packet, ec)) {
+                spdlog::debug("Didn't get ack pack Packet::Type::FileData {}", packet.header.length);
+            } else if (packet.header.type == Packet::Type::Ack) {
+                spdlog::debug("ACK PACK Packet::Type::FileData {}", packet.header.length);
+            }
+
+        } while (true);
+
+        packet.header.type = Packet::Type::Hash;
+        auto hash = fileHandler.getFileHash(fileName);
+        memcpy(packet.payload, hash.c_str(), hash.size());
+        packet.header.length = hash.size();
+        if (!writeToSocket(m_socket, packet, ec)) {
+            return false;
+        }
+
+        if (!readFromSocket(m_socket, packet, ec)) {
+            spdlog::debug("Didn't get ack pack  Packet::Type::Hash {}", packet.header.length);
+        } else if (packet.header.type == Packet::Type::Ack) {
+            spdlog::debug("ACK PACK Packet::Type::Hash  {}", packet.header.length);
+        }
+
+        packet.header.type = Packet::Type::Exit;
+        packet.header.length = 0;
+
+        if (!writeToSocket(m_socket, packet, ec)) {
+            return false;
+        }
+
+        return true;
+    }
+
 private:
     // asio context handles the data transfer...
     io_context m_context;
     tcp::endpoint m_endpoint;
     tcp::socket m_socket;
+
 };
 
 bool doClientConnection() {
@@ -100,6 +185,16 @@ bool sendPacketFromClient(char data[4096]) {
 bool checkPingPong() {
     SimpleClient simpleClient(host, port);
     return simpleClient.connect() and simpleClient.isPongable();
+}
+
+bool sendFileNamePacket() {
+    SimpleClient simpleClient(host, port);
+    return simpleClient.connect() and simpleClient.isPongable() and simpleClient.sendFileNamePacket();
+}
+
+bool sendFilePacket(string filename) {
+    SimpleClient simpleClient(host, port);
+    return simpleClient.connect() and simpleClient.isPongable() and simpleClient.fullCycle(filename);
 }
 
 TEST(test_connection, test_connection) {
@@ -249,16 +344,41 @@ TEST(test_file_writer_connection, test_file) {
             spdlog::info("New connection");
             std::shared_ptr<FileWriterConnection> newConnection = std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
             if (newConnection->ConnectToClient()) {
-                EXPECT_TRUE(newConnection->isPingable());
+                newConnection->FileProcess();
             }
         } else {
             spdlog::error("Error has occurred during acceptance: {}", ec.message());
         }
     });
 
-    auto future = std::async(std::launch::async, checkPingPong);
+    auto future = std::async(std::launch::async, sendFileNamePacket);
 
     ioContext.run();
-    auto isPongable = future.get();
-    EXPECT_TRUE(isPongable);
+    auto isPacketSent = future.get();
+    EXPECT_TRUE(isPacketSent);
+}
+
+//Get a message and print it
+TEST(test_file_writer_connection, test_send_file) {
+    io_context ioContext;
+    tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
+
+    tcp::acceptor myAcceptor(ioContext, endpoint);
+    myAcceptor.async_accept([&] (boost::system::error_code ec, tcp::socket socket) {
+        if (!ec) {
+            spdlog::info("New connection");
+            std::shared_ptr<FileWriterConnection> newConnection = std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
+            if (newConnection->ConnectToClient()) {
+                newConnection->FileProcess();
+            }
+        } else {
+            spdlog::error("Error has occurred during acceptance: {}", ec.message());
+        }
+    });
+
+    auto future = std::async(std::launch::async, sendFilePacket, "Somedata.txt");
+
+    ioContext.run();
+    auto isPacketSent = future.get();
+    EXPECT_TRUE(isPacketSent);
 }

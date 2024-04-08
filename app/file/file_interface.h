@@ -24,7 +24,7 @@ public:
     FileInterface() = default;
 
     void open(const std::string& name, const std::string& mode);
-
+    std::string getFilename() const;
     std::FILE* get();
     //! \brief virtual destructor - close opened file.
     virtual ~FileInterface();
@@ -32,5 +32,6 @@ public:
 private:
 
     std::FILE* m_file;
+    std::string m_fileName;
     //! List of private variables.
 };

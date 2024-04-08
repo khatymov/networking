@@ -39,13 +39,6 @@ using boost::system::error_code;
     //read header
     auto head_size = read(socket, buffer(&packet.header, sizeof(packet.header)), transfer_exactly(sizeof(packet.header)), ec);
 
-    if (packet.header.type == Packet::Type::Ping)
-    {
-        spdlog::debug("got Packet::Ping with size {}", head_size);
-    } else if (packet.header.type == Packet::Type::Pong) {
-        spdlog::debug("got Packet::Pong with size with size {}", head_size);
-    }
-
     if (ec)
     {
         spdlog::error("Read packet header error: {}", ec.message());
