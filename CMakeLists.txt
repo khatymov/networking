@@ -23,7 +23,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/app/connection/connection.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/app/file/file.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/app/client/client.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/app/packet/packet.cmake)
-
+include(${CMAKE_CURRENT_LIST_DIR}/app/timer/timer.cmake)
 
 add_executable(${PROJECT_NAME}
                 main.cpp
@@ -33,6 +33,7 @@ add_executable(${PROJECT_NAME}
                 ${CLIENT}
                 ${FILE}
                 ${PACKET}
+                ${TIMER}
 )
 
 #target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)

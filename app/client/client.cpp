@@ -96,9 +96,10 @@ bool Client::sendFile(const string& fileName) {
 
         if (!readFromSocket(m_socket, packet, ec)) {
             spdlog::debug("Didn't get ack pack Packet::Type::FileData {}", packet.header.length);
-        } else if (packet.header.type == Packet::Type::Ack) {
-            spdlog::debug("ACK PACK Packet::Type::FileData {}", packet.header.length);
         }
+//        else if (packet.header.type == Packet::Type::Ack) {
+//            spdlog::debug("ACK PACK Packet::Type::FileData {}", packet.header.length);
+//        }
 
     } while (true);
 
@@ -112,9 +113,10 @@ bool Client::sendFile(const string& fileName) {
 
     if (!readFromSocket(m_socket, packet, ec)) {
         spdlog::debug("Didn't get ack pack  Packet::Type::Hash {}", packet.header.length);
-    } else if (packet.header.type == Packet::Type::Ack) {
-        spdlog::debug("ACK PACK Packet::Type::Hash  {}", packet.header.length);
     }
+//    else if (packet.header.type == Packet::Type::Ack) {
+//        spdlog::debug("ACK PACK Packet::Type::Hash  {}", packet.header.length);
+//    }
 
     packet.header.type = Packet::Type::Exit;
     packet.header.length = 1;
@@ -125,9 +127,10 @@ bool Client::sendFile(const string& fileName) {
 
     if (!readFromSocket(m_socket, packet, ec)) {
         spdlog::debug("Didn't get ack pack  Packet::Type::Exit {}", packet.header.length);
-    } else if (packet.header.type == Packet::Type::Ack) {
-        spdlog::debug("Got Packet::Type::Exit  {}", packet.header.length);
     }
+//    else if (packet.header.type == Packet::Type::Ack) {
+//        spdlog::debug("Got Packet::Type::Exit  {}", packet.header.length);
+//    }
 
     spdlog::debug("SEND EXIT PACK");
     return true;

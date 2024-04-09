@@ -21,10 +21,10 @@ using namespace boost::asio::ip;
  * \brief Some briefing
  */
 class TmpFileWriterConnection: public std::enable_shared_from_this<TmpFileWriterConnection> {
-//    TmpFileWriterConnection(const TmpFileWriterConnection&) = delete;
-//    TmpFileWriterConnection(TmpFileWriterConnection&&) = delete;
-//    TmpFileWriterConnection operator=(const TmpFileWriterConnection&) = delete;
-//    TmpFileWriterConnection operator=(TmpFileWriterConnection&&) = delete;
+    TmpFileWriterConnection(const TmpFileWriterConnection&) = delete;
+    TmpFileWriterConnection(TmpFileWriterConnection&&) = delete;
+    TmpFileWriterConnection operator=(const TmpFileWriterConnection&) = delete;
+    TmpFileWriterConnection operator=(TmpFileWriterConnection&&) = delete;
 public:
 
     //! \brief default constructor.
@@ -53,13 +53,13 @@ private:
         auto self(shared_from_this());
         async_read(m_socket, boost::asio::buffer(&_packet.header, sizeof(_packet.header)),
                    [this, self] (boost::system::error_code errorCode, std::size_t length) {
-                       spdlog::debug("header len: {}", length);
+//                       spdlog::debug("header len: {}", length);
 
                        if (!errorCode) {
-                           spdlog::debug("Packet header: ");
+//                           spdlog::debug("Packet header: ");
                            if (_packet.header.length > 0) {
                                _ReadPayload();
-                               spdlog::info("Here should be read body");
+//                               spdlog::info("Here should be read body");
                            } else {
                                do_write(ack_packet);
                            }
@@ -75,10 +75,13 @@ private:
         auto self(shared_from_this());
         async_read(m_socket, boost::asio::buffer(&_packet.payload, _packet.header.length),
                    [this, self] (boost::system::error_code errorCode, std::size_t length) {
-                       spdlog::debug("payload len: {}", length);
+//                       spdlog::debug("payload len: {}", length);
                        if (!errorCode) {
-                           spdlog::debug("Packet payload: {}", string(_packet.payload, _packet.header.length));
+//                           spdlog::debug("Packet payload: {}", string(_packet.payload, _packet.header.length));
                            _ProcessPacket();
+//                           if (_packet.header.type == Packet::Type::FileData) {
+//                           _ReadHeader();
+//                           }
                            do_write(ack_packet);
                        } else {
                            spdlog::error("error payload: {}", errorCode.message());
@@ -130,7 +133,7 @@ private:
             };
             case (Packet::Type::FileData): {
                 // at this step we write data from socket to file
-                spdlog::debug("Read from socket and write to the file");
+//                spdlog::debug("Read from socket and write to the file");
 
                 fileHandler.write(_packet);
 
@@ -152,7 +155,7 @@ private:
             case (Packet::Type::Exit): {
                 // at this step we close the socket and exit
                 spdlog::debug("We are done");
-                m_socket.close();
+//                m_socket.close();
                 break;
             };
             default: {

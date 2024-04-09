@@ -30,8 +30,8 @@ using boost::system::error_code;
             spdlog::error("Send packet payload error: {}", ec.message());
             return false;
         }
-        std::string str(packet.payload, sentPayloadSize);
-        spdlog::info("Send packet: {}, size: {}", str, sentPayloadSize);
+//        std::string str(packet.payload, sentPayloadSize);
+//        spdlog::info("Send packet: {}, size: {}", str, sentPayloadSize);
     }
 
 

@@ -9,6 +9,7 @@
 #include "common.h"
 #include "server.h"
 #include "client.h"
+#include "timer.h"
 
 using boost::asio::ip::tcp;
 
@@ -43,6 +44,7 @@ int main(int argc, char* argv[]) {
 //        client.sendFile(filePath.data());
         if (client.connect()) {
 //            return client.doPingPing();
+            Timer t;
             return client.sendFile(filePath.data());
         } else {
             return EXIT_FAILURE;
