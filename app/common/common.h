@@ -13,6 +13,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/asio/ts/buffer.hpp>
+#include <boost/thread/thread.hpp>
 
 #include "spdlog/spdlog.h"
 

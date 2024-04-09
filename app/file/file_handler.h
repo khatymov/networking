@@ -30,7 +30,7 @@ public:
 
     void read(Packet& packet);
 
-    size_t write(const Packet& packet);
+    size_t write(Packet& packet);
 
     static bool isFileExist(const std::string& fileName);
 

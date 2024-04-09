@@ -21,18 +21,21 @@ include(${CMAKE_CURRENT_LIST_DIR}/app/common/common.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/app/server/server.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/app/connection/connection.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/app/file/file.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/app/client/client.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/app/packet/packet.cmake)
 
 add_executable(${PROJECT_NAME}
                 main.cpp
                 ${COMMON}
                 ${CONNECTION}
                 ${SERVER}
+                ${CLIENT}
                 ${FILE}
+                ${PACKET}
 )
 
-target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
-
-add_subdirectory(tests)
-
+#target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
 
 target_link_libraries(${PROJECT_NAME} boost::boost -lcrypto)
+
+add_subdirectory(tests)

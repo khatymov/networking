@@ -8,6 +8,10 @@
 
 #pragma once
 
+#include "common.h"
+
+using namespace boost::asio;
+using namespace boost::asio::ip;
 /*! \class Server
  * \brief Some briefing
  */
@@ -20,13 +24,20 @@ class Server
 public:
 
     //! \brief default constructor.
-    Server();
+    Server(const std::string& ip, const uint port);
 
     //! \brief default destructor.
-    ~Server() = default;
+    ~Server();
 
+    void start();
+    void stop();
 private:
-
+    void waitForClientConnection();
+    void threadCallback(std::shared_ptr<io_context> ioContext);
     //! List of private variables.
-
+    io_context m_ioContext;
+    tcp::endpoint m_endpoint;
+    tcp::acceptor m_acceptor;
+//    boost::thread_group m_executorsThreadGroup;
+    std::thread m_threadContext;
 };

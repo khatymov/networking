@@ -16,7 +16,7 @@ using boost::system::error_code;
 
 [[nodiscard]] static bool writeToSocket(ip::tcp::socket& socket, const Packet& packet, boost::system::error_code& ec) {
     //send header
-    write(socket, boost::asio::buffer(&packet.header, sizeof(packet.header)), transfer_exactly(sizeof(packet.header)), ec);
+    auto sentHeaderSize = write(socket, boost::asio::buffer(&packet.header, sizeof(packet.header)), transfer_exactly(sizeof(packet.header)), ec);
     if (ec)
     {
         spdlog::error("Send packet header error: {}", ec.message());
@@ -24,13 +24,16 @@ using boost::system::error_code;
     }
     //send payload
     if (packet.header.length > 0) {
-        write(socket, boost::asio::buffer(&packet.payload, packet.header.length), transfer_exactly(packet.header.length), ec);
+        auto sentPayloadSize = write(socket, boost::asio::buffer(&packet.payload, packet.header.length), transfer_exactly(packet.header.length), ec);
         if (ec)
         {
             spdlog::error("Send packet payload error: {}", ec.message());
             return false;
         }
+        std::string str(packet.payload, sentPayloadSize);
+        spdlog::info("Send packet: {}, size: {}", str, sentPayloadSize);
     }
+
 
     return true;
 }
@@ -45,7 +48,7 @@ using boost::system::error_code;
         return false;
     }
     //read payload
-    auto payload_size = read(socket, boost::asio::buffer(&packet.payload, sizeof(packet.header.length)), transfer_exactly(packet.header.length), ec);
+    auto payload_size = read(socket, boost::asio::buffer(&packet.payload, packet.header.length), transfer_exactly(packet.header.length), ec);
     if (ec)
     {
         spdlog::error("Read packet payload error: {}", ec.message());

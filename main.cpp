@@ -6,8 +6,9 @@
 #include <span>
 #include <boost/asio.hpp>
 
-#include "server.h"
 #include "common.h"
+#include "server.h"
+#include "client.h"
 
 using boost::asio::ip::tcp;
 
@@ -17,7 +18,6 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
 
-    spdlog::default_logger()->set_pattern("[SERVER] %+ [thread %t]");
     spdlog::default_logger()->set_level(spdlog::level::debug);
 
     const auto args = std::span(argv, size_t(argc));
@@ -28,11 +28,23 @@ int main(int argc, char* argv[]) {
     }
 
     const string_view ip{args[1]};
-
-    if (argc == 1) {
-        Server server;
-    } else {
+    const string_view port_str{args[2]};
+    if (argc == 3) {
+        spdlog::default_logger()->set_pattern("[SERVER] %+ [thread %t]");
+        Server server(ip.data(), uint(std::stoul(port_str.data(),nullptr,0)));
+        server.start();
+    } else if (argc == 4) {
         //client code
+        spdlog::default_logger()->set_pattern("[CLIENT] %+ [thread %t]");
+        const string_view filePath{args[3]};
+        Client client(ip.data(), uint(std::stoul(port_str.data(),nullptr,0)));
+//        client.sendFile(filePath.data());
+        if (client.connect()) {
+//            return client.doPingPing();
+            return client.sendFile(filePath.data());
+        } else {
+            return EXIT_FAILURE;
+        }
     }
 
     return 0;

@@ -18,10 +18,12 @@ FileHandler::~FileHandler() {
 }
 
 void FileHandler::read(Packet& packet) {
+    packet.header.type = Packet::Type::FileData;
     packet.header.length = std::fread(&packet.payload, sizeof(char), DATA_SIZE, get());
 }
 
-size_t FileHandler::write(const Packet& packet) {
+size_t FileHandler::write(Packet& packet) {
+    packet.header.type = Packet::Type::FileData;
     return std::fwrite(&packet.payload,  sizeof(char), packet.header.length, get());
 }
 bool FileHandler::isFileExist(const string& fileName) {
