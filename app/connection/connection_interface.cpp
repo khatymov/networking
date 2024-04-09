@@ -9,9 +9,7 @@
 using namespace std;
 using namespace boost::asio;
 
-ConnectionInterface::ConnectionInterface(boost::asio::io_context& asioContext, boost::asio::ip::tcp::socket socket)
-    : m_ioContext(asioContext),
-      m_socket(std::move(socket)) {
+ConnectionInterface::ConnectionInterface(boost::asio::ip::tcp::socket socket) : m_socket(std::move(socket)) {
 }
 
 ConnectionInterface::~ConnectionInterface()

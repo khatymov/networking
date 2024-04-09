@@ -12,7 +12,7 @@
 #include <assert.h>
 
 //TODO check what is the perfect size for socket
-#define DATA_SIZE 128
+#define DATA_SIZE 1024
 
 /*! \struct Packet
  * \brief Holds a header and the data

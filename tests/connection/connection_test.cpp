@@ -343,7 +343,7 @@ TEST(test_file_writer_connection, test_file) {
         if (!ec) {
             spdlog::info("New connection");
             std::shared_ptr<FileWriterConnection> newConnection = std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
-            if (newConnection->ConnectToClient()) {
+            if (newConnection->ConnectToClient() and newConnection->isPingable()) {
                 newConnection->FileProcess();
             }
         } else {
@@ -386,22 +386,140 @@ TEST(test_file_writer_connection, test_send_file) {
     EXPECT_TRUE(isPacketSent);
 }
 
-//TEST(test_file_writer_connection, test_communicate_client) {
-//    io_context ioContext;
-//    tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
-//
-//    tcp::acceptor myAcceptor(ioContext, endpoint);
-//    myAcceptor.async_accept([&] (boost::system::error_code ec, tcp::socket socket) {
-//        if (!ec) {
-//            spdlog::info("New connection");
-//            std::shared_ptr<FileWriterConnection> newConnection = std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
-//            if (newConnection->ConnectToClient()) {
-//                newConnection->FileProcess();
-//            }
-//        } else {
-//            spdlog::error("Error has occurred during acceptance: {}", ec.message());
-//        }
-//    });
-//
-//    ioContext.run();
-//}
+TEST(test_file_writer_connection, test_communicate_client) {
+
+    spdlog::info("test_communicate_client");
+
+    io_context ioContext;
+    tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
+
+    tcp::acceptor myAcceptor(ioContext, endpoint);
+    myAcceptor.async_accept([&] (boost::system::error_code ec, tcp::socket socket) {
+        if (!ec) {
+            spdlog::info("New connection");
+            std::shared_ptr<FileWriterConnection> newConnection = std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
+            if (newConnection->ConnectToClient()) {
+                newConnection->run();
+            }
+        } else {
+            spdlog::error("Error has occurred during acceptance: {}", ec.message());
+        }
+    });
+
+    auto future = std::async(std::launch::async, sendFilePacket, "Somedata.txt");
+
+    jthread t([&] () {
+        ioContext.run();
+    });
+
+    auto isPacketSent = future.get();
+    EXPECT_TRUE(isPacketSent);
+}
+
+
+class Session : public std::enable_shared_from_this<Session> {
+public:
+    Session(tcp::socket socket) : socket_(std::move(socket)) {
+        ack_packet.header.type = Packet::Type::Ack;
+        ack_packet.header.length = 0;
+    }
+
+    void start() {
+        do_read();
+    }
+
+private:
+    tcp::socket socket_;
+    enum { max_length = 1024 };
+    char data_[max_length];
+    Packet _packet;
+    Packet ack_packet;
+
+    void do_read() {
+        auto self(shared_from_this());
+        socket_.async_read_some(boost::asio::buffer(&_packet.header, sizeof(_packet.header)),
+                                [this, self](boost::system::error_code ec, std::size_t length) {
+                                    if (!ec) {
+                                        do_read_body();
+                                    }
+                                });
+    }
+
+    void do_read_body() {
+        auto self(shared_from_this());
+        socket_.async_read_some(boost::asio::buffer(&_packet.payload, _packet.header.length),
+                                [this, self](boost::system::error_code ec, std::size_t length) {
+                                    if (!ec) {
+                                        spdlog::debug("Packet payload: {}", string(_packet.payload, _packet.header.length));
+//                                        do_read();
+                                        do_write(ack_packet);
+                                    }
+                                });
+    }
+
+    void do_write(Packet& packet) {
+        auto self(shared_from_this());
+        boost::asio::async_write(socket_, boost::asio::buffer(&_packet.header, sizeof(_packet.header)),
+                                 [this, self, packet](boost::system::error_code ec, std::size_t /*length*/) {
+                                     if (!ec) {
+                                         do_write_body(packet);
+                                     }
+                                 });
+    }
+
+    void do_write_body(Packet packet) {
+        auto self(shared_from_this());
+        boost::asio::async_write(socket_, boost::asio::buffer(&_packet.payload, _packet.header.length),
+                                 [this, self, packet](boost::system::error_code ec, std::size_t /*length*/) {
+                                     if (!ec) {
+                                         do_read();
+                                     }
+                                 });
+    }
+};
+
+class Server {
+public:
+    Server(boost::asio::io_context& io_context, const uint port)
+        : acceptor_(io_context, tcp::endpoint(boost::asio::ip::make_address(host), port)) {
+        do_accept();
+    }
+
+private:
+    tcp::acceptor acceptor_;
+
+    void do_accept() {
+        acceptor_.async_accept(
+            [this](boost::system::error_code ec, tcp::socket socket) {
+                if (!ec) {
+                    std::make_shared<Session>(std::move(socket))->start();
+                }
+
+                do_accept();
+            });
+    }
+};
+
+
+TEST(test_file_writer_connection, test_some_server) {
+    try {
+        boost::asio::io_context io_context;
+
+        Server s(io_context, port);
+
+        auto future = std::async(std::launch::async, sendFilePacket, "Somedata.txt");
+        // Run the io_context to start asynchronous operations.
+        // For multithreading, you could call io_context.run() from multiple threads.
+        io_context.run();
+
+        //    auto thrContext = std::thread([&]() { ioContext.run(); });
+        //    if (thrContext.joinable())
+        //        thrContext.join();
+
+        auto isPacketSent = future.get();
+        EXPECT_TRUE(isPacketSent);
+    }
+    catch (std::exception& e) {
+        std::cerr << "Exception: " << e.what() << "\n";
+    }
+}

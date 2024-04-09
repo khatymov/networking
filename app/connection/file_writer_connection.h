@@ -21,7 +21,7 @@ class FileWriterConnection: public ConnectionInterface, std::enable_shared_from_
 public:
 
     //! \brief default constructor.
-    FileWriterConnection(boost::asio::io_context& ioContext, boost::asio::ip::tcp::socket socket);
+    FileWriterConnection(boost::asio::ip::tcp::socket socket);
 
     //! \brief default destructor.
     ~FileWriterConnection() override;

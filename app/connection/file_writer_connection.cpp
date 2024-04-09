@@ -10,9 +10,7 @@
 using namespace std;
 using namespace boost::asio;
 
-FileWriterConnection::FileWriterConnection(boost::asio::io_context& ioContext, boost::asio::ip::tcp::socket socket)
-    : ConnectionInterface(ioContext, std::move(socket))
-{}
+FileWriterConnection::FileWriterConnection(boost::asio::ip::tcp::socket socket) : ConnectionInterface(std::move(socket)) {}
 
 void FileWriterConnection::run() {
     //    shared_from_this();
@@ -21,14 +19,16 @@ void FileWriterConnection::run() {
 }
 
 void FileWriterConnection::_ReadHeader() {
+    auto self(shared_from_this());
     async_read(m_socket, boost::asio::buffer(&_packet.header, sizeof(_packet.header)),
-               [this] (boost::system::error_code errorCode, std::size_t length) {
+               [this, self] (boost::system::error_code errorCode, std::size_t length) {
                    spdlog::debug("header len: {}", length);
-                   //                   this->shared_from_this();
+//                   this->shared_from_this();
                    if (!errorCode) {
                        spdlog::debug("Packet header: ");
                        if (_packet.header.length > 0) {
-                           _ReadPayload();
+//                           _ReadPayload();
+                           spdlog::info("Here should be read body");
                        } else {
                            _ReadHeader();
                        }
@@ -194,9 +194,9 @@ void FileWriterConnection::FileProcess() {
 
                 fileHandler.open(fileName, "w");
 
-//                if (!writeToSocket(getSocket(), ack_packet, ec)) {
-//                    return;
-//                }
+                if (!writeToSocket(getSocket(), ack_packet, ec)) {
+                    return;
+                }
 
                 break;
             };
@@ -205,9 +205,9 @@ void FileWriterConnection::FileProcess() {
                 spdlog::debug("Read from socket and write to the file");
 
                 fileHandler.write(packet);
-//                if (!writeToSocket(getSocket(), ack_packet, ec)) {
-//                    return;
-//                }
+                if (!writeToSocket(getSocket(), ack_packet, ec)) {
+                    return;
+                }
                 break;
             };
             case (Packet::Type::Hash): {
@@ -221,9 +221,9 @@ void FileWriterConnection::FileProcess() {
                 } else {
                     spdlog::error("Client file hash and our hash is different: {} vs {}", clientFileHash, hash);
                 }
-//                if (!writeToSocket(getSocket(), ack_packet, ec)) {
-//                    return;
-//                }
+                if (!writeToSocket(getSocket(), ack_packet, ec)) {
+                    return;
+                }
                 break;
             };
             case (Packet::Type::Exit): {

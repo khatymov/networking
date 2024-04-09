@@ -24,6 +24,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/app/file/file.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/app/client/client.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/app/packet/packet.cmake)
 
+
 add_executable(${PROJECT_NAME}
                 main.cpp
                 ${COMMON}

@@ -73,7 +73,7 @@ bool Client::sendFile(const string& fileName) {
         return false;
     }
 
-    this_thread::sleep_for(std::chrono::seconds(35));
+//    this_thread::sleep_for(std::chrono::seconds(35));
 //    if (!readFromSocket(m_socket, packet, ec)) {
 //        spdlog::debug("Didn't get ack pack Packet::Type::FileName {}", packet.header.length);
 //    } else if (packet.header.type == Packet::Type::Ack) {
@@ -117,12 +117,19 @@ bool Client::sendFile(const string& fileName) {
     }
 
     packet.header.type = Packet::Type::Exit;
-    packet.header.length = 0;
+    packet.header.length = 1;
 
     if (!writeToSocket(m_socket, packet, ec)) {
         return false;
     }
 
+    if (!readFromSocket(m_socket, packet, ec)) {
+        spdlog::debug("Didn't get ack pack  Packet::Type::Exit {}", packet.header.length);
+    } else if (packet.header.type == Packet::Type::Ack) {
+        spdlog::debug("Got Packet::Type::Exit  {}", packet.header.length);
+    }
+
+    spdlog::debug("SEND EXIT PACK");
     return true;
 }
 void Client::send(const Packet& packet) {

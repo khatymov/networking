@@ -21,7 +21,7 @@ class ConnectionInterface  {
 //    ConnectionInterface operator=(ConnectionInterface&&) = delete;
 public:
     //! \brief accept io_context and socket.
-    ConnectionInterface(boost::asio::io_context& asioContext, boost::asio::ip::tcp::socket socket);
+    ConnectionInterface(boost::asio::ip::tcp::socket socket);
 
     //! \brief Close socket if it is still opened
     virtual ~ConnectionInterface();
@@ -32,11 +32,9 @@ public:
     virtual void Process();
 
     boost::asio::ip::tcp::socket &getSocket() noexcept;
+
     //! \brief This context is shared with the whole asio instance
-    boost::asio::io_context& m_ioContext;
-
-    boost::asio::ip::tcp::socket m_socket;
-
+//    boost::asio::io_context& m_ioContext;
     //! \brief Each connection has a unique socket to a remote
-
+    boost::asio::ip::tcp::socket m_socket;
 };

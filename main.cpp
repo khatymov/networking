@@ -31,8 +31,10 @@ int main(int argc, char* argv[]) {
     const string_view port_str{args[2]};
     if (argc == 3) {
         spdlog::default_logger()->set_pattern("[SERVER] %+ [thread %t]");
-        Server server(ip.data(), uint(std::stoul(port_str.data(),nullptr,0)));
-        server.start();
+        boost::asio::io_context io_context;
+        Server server(io_context, ip.data(), uint(std::stoul(port_str.data(), nullptr, 0)));
+        io_context.run();
+//        server.start();
     } else if (argc == 4) {
         //client code
         spdlog::default_logger()->set_pattern("[CLIENT] %+ [thread %t]");
