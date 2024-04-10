@@ -31,21 +31,47 @@ int main(int argc, char* argv[]) {
     const string_view ip{args[1]};
     const string_view port_str{args[2]};
     if (argc == 3) {
+
         spdlog::default_logger()->set_pattern("[SERVER] %+ [thread %t]");
+
         boost::asio::io_context io_context;
+
         Server server(io_context, ip.data(), uint(std::stoul(port_str.data(), nullptr, 0)));
-        io_context.run();
-//        server.start();
+
+        // Number of threads you want to run io_context in.
+        const std::size_t num_threads = std::thread::hardware_concurrency();
+
+        std::vector<std::thread> threads;
+        for(std::size_t i = 0; i < num_threads; ++i) {
+            threads.emplace_back([&io_context]() {
+                io_context.run();
+            });
+            //TODO: read https://www.glennklockwood.com/hpc-howtos/process-affinity.html
+//#ifdef __linux__
+//            // bind cpu affinity for worker thread in linux
+//            cpu_set_t cpuset;
+//            CPU_ZERO(&cpuset);
+//            CPU_SET(i, &cpuset);
+//            pthread_setaffinity_np(threads.back().native_handle(), sizeof(cpu_set_t), &cpuset);
+//#endif
+        }
+
+        for(auto& t : threads) {
+            if(t.joinable()) {
+                t.join();
+            }
+        }
+
     } else if (argc == 4) {
         //client code
         spdlog::default_logger()->set_pattern("[CLIENT] %+ [thread %t]");
-        const string_view filePath{args[3]};
+        string filePath{args[3]};
         Client client(ip.data(), uint(std::stoul(port_str.data(),nullptr,0)));
 //        client.sendFile(filePath.data());
         if (client.connect()) {
 //            return client.doPingPing();
             Timer t;
-            return client.sendFile(filePath.data());
+            return client.sendFile(filePath);
         } else {
             return EXIT_FAILURE;
         }

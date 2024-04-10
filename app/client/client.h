@@ -30,7 +30,7 @@ public:
 
     [[nodiscard]] bool connect();
     [[maybe_unused]] bool doPingPing();
-    [[nodiscard]] bool sendFile(const std::string& fileName);
+    [[nodiscard]] bool sendFile(std::string& fileName);
 private:
     void send(const Packet& packet);
     void receive(Packet& packet);

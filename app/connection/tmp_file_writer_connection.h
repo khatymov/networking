@@ -121,6 +121,12 @@ private:
                 // at this step we need to open file
                 spdlog::debug("Create a file");
                 std::string fileName(_packet.payload, _packet.header.length);
+
+                if (fileName.find('/') != string::npos) {
+                    size_t last_slash_i = fileName.rfind('/');
+                    fileName = fileName.substr(last_slash_i + 1, fileName.size());
+                }
+
                 if (fileHandler.isFileExist(fileName)) {
                     spdlog::debug("File with the name {} exists.", fileName);
                     fileName = fileHandler.getUniqueName(fileName);
@@ -155,7 +161,7 @@ private:
             case (Packet::Type::Exit): {
                 // at this step we close the socket and exit
                 spdlog::debug("We are done");
-//                m_socket.close();
+                m_socket.close();
                 break;
             };
             default: {

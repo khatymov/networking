@@ -54,7 +54,7 @@ bool Client::doPingPing() {
 
     return packet.header.type == Packet::Type::Pong;
 }
-bool Client::sendFile(const string& fileName) {
+bool Client::sendFile(std::string& fileName) {
     FileHandler fileHandler;
 //    if (fileHandler.isFileExist(fileName)) {
 //        spdlog::error("File doesn't exist");

@@ -32,7 +32,7 @@ bool FileHandler::isFileExist(const string& fileName) {
 
 std::string FileHandler::getUniqueName(const string& fileName) {
     std::string uniqueName;
-    auto ts = to_string(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    auto ts = to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 
     auto dotPos = fileName.find('.');
 
