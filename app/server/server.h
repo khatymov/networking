@@ -13,7 +13,7 @@
 using namespace boost::asio;
 using namespace boost::asio::ip;
 /*! \class Server
- * \brief Some briefing
+ * \brief Server accept client connection and starts communicate with a client
  */
 class Server
 {
@@ -21,23 +21,18 @@ class Server
     Server(Server&&) = delete;
     Server operator=(const Server&) = delete;
     Server operator=(Server&&) = delete;
+
 public:
-
-    //! \brief default constructor.
+    //! \brief Constructor accepts io_context - core of asio, ip and port to listen incoming connections
     Server(boost::asio::io_context& io_context, const std::string& ip, const uint port);
-
     //! \brief default destructor.
     ~Server() = default;
-
-//    void start();
-//    void stop();
 private:
-    void waitForClientConnection();
-//    void threadCallback(std::shared_ptr<io_context> ioContext);
-    //! List of private variables.
-//    io_context m_ioContext;
-//    tcp::endpoint m_endpoint;
+    //private methods
+    //! \brief Uses to accept new clients in async manner
+    void _waitForClientConnection();
+
+    //private variables
+    //! \brief Handles new incoming connection attempts
     tcp::acceptor m_acceptor;
-//    boost::thread_group m_executorsThreadGroup;
-//    std::thread m_threadContext;
 };
