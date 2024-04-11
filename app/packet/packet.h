@@ -19,8 +19,6 @@
  */
 struct Packet {
     enum class Type : uint32_t {
-        Ping,     // We are ready
-        Pong,     // Okay, let's start
         Ack,      // Confirm that packet received
         FileName, // name of a transferred file
         FileData, // File data

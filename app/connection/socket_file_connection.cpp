@@ -23,6 +23,9 @@ void SocketFileConnection::_readHeader() {
     // (e.g. because the connection was dropped) the SocketFileConnection object will be freed.
     //BUT the object must not be destroyed when an async operation is in progress
     auto self(shared_from_this());
+    // 20 packs
+    // узкое место - сеть
+    //
     async_read(m_socket, boost::asio::buffer(&_packet.header, sizeof(_packet.header)),
                [this, self] (boost::system::error_code errorCode, std::size_t length) {
                    if (!errorCode) {
@@ -44,7 +47,7 @@ void SocketFileConnection::_readPayload() {
     async_read(m_socket, boost::asio::buffer(&_packet.payload, _packet.header.length),
                [this, self] (boost::system::error_code errorCode, std::size_t length) {
                    if (!errorCode) {
-                       _handlePacket();
+                       _handlePacket();//gateway распределение мощности
                        _writeHeader(_ack_packet);
                    } else {
                        spdlog::error("error payload: {}", errorCode.message());
@@ -74,7 +77,7 @@ void SocketFileConnection::_writePayload(const Packet& packet) {
 }
 
 void SocketFileConnection::_handlePacket() {
-
+    // add functions for every case
     switch (_packet.header.type) {
         case (Packet::Type::FileName): {
             // at this step we need to open file
@@ -91,7 +94,6 @@ void SocketFileConnection::_handlePacket() {
             if (fileHandler.isFileExist(fileName)) {
                 spdlog::debug("File with the name {} exists.", fileName);
                 fileName = fileHandler.getUniqueName(fileName);
-
             }
 
             spdlog::debug("Open a file:  {}", fileName);

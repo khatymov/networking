@@ -3,12 +3,9 @@
  */
 #include "timer.h"
 
-Timer::Timer() : startTime(std::chrono::system_clock::now())
-{
-}
+Timer::Timer() : startTime(std::chrono::system_clock::now()) {}
 
-Timer::~Timer()
-{
+Timer::~Timer() {
     // Calculate duration
     const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - startTime);
     // Extract seconds and milliseconds

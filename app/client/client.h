@@ -13,7 +13,8 @@
 #include "common.h"
 
 /*! \class Client
- * \brief Some briefing
+ * \brief The purpose of this Client class is reading data
+ * from a file and sending them via socket to server
  */
 class Client {
     Client(const Client&) = delete;
@@ -22,24 +23,32 @@ class Client {
     Client operator=(Client&&) = delete;
 public:
 
-    //! \brief default constructor.
+    /**
+     * \brief Constructor
+     *
+     * \param ip - the host that client tries to connect
+     * \param port - port number
+     */
     Client(const std::string& ip, const uint port);
 
     //! \brief default destructor.
     ~Client() = default;
-
+    //! \brief connect via socket to a server
     [[nodiscard]] bool connect();
-    [[maybe_unused]] bool doPingPing();
-    [[nodiscard]] bool sendFile(std::string& fileName);
-private:
-    void send(const Packet& packet);
-    void receive(Packet& packet);
+    /**
+     * \brief Send file to a server
+     *
+     * \param fileName - the name of a file that should be sent
+     * \return true if file sent
+     */
+    [[nodiscard]] bool sendFile(const std::string& fileName);
 
-    void writeHeader(const Packet& packet);
-    void writePayload(const Packet& packet);
-    // asio context handles the data transfer...
+private:
+
+    //! \brief asio context handles the data transfer...
     boost::asio::io_context m_context;
+    //! \brief using to resolve hostname/ip-address into tangiable physical address
     boost::asio::ip::tcp::endpoint m_endpoint;
+    //! \brief socket allows us to connect to the server
     boost::asio::ip::tcp::socket m_socket;
-    //! List of private variables.
 };

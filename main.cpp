@@ -24,8 +24,8 @@ int main(int argc, char* argv[]) {
     const auto args = std::span(argv, size_t(argc));
     if (args.size() < 2) {
         cout << "Usage:\n";
-        cout << "If server:  ./networking 127.0.0.1\n";
-        cout << "If client:  ./networking 127.0.0.1 /path/to/file\n";
+        cout << "If server:  ./networking 127.0.0.1 1234\n";
+        cout << "If client:  ./networking 127.0.0.1 1234 /path/to/file\n";
     }
 
     const string_view ip{args[1]};
@@ -35,6 +35,7 @@ int main(int argc, char* argv[]) {
 
         spdlog::default_logger()->set_pattern("[SERVER] %+ [thread %t]");
         spdlog::info("Server starts work");
+
         boost::asio::io_context io_context;
 
         // create a server object and starts waiting for a new client
@@ -60,13 +61,14 @@ int main(int argc, char* argv[]) {
         spdlog::default_logger()->set_pattern("[CLIENT] %+ [thread %t]");
         spdlog::info("Client starts work");
 
-        string filePath{args[3]};
+        const string_view filePath{args[3]};
         Client client(ip.data(), uint(std::stoul(port_str.data(),nullptr,0)));
 
         if (client.connect()) {
             Timer t;
-            return client.sendFile(filePath);
+            return client.sendFile(filePath.data());
         } else {
+            spdlog::info("Client could not connect to a server");
             return EXIT_FAILURE;
         }
     }
