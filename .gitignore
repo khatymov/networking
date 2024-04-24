@@ -617,3 +617,7 @@ FodyWeavers.xsd
 
 # Conan
 CMakeUserPresets.json
+/conan_provider.cmake
+/conandata.yml
+
+trash

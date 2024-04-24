@@ -1,8 +1,9 @@
-BasedOnStyle: Microsoft
+BasedOnStyle: Google
 Language: Cpp
 ColumnLimit: 160
 PointerAlignment: Left
 NamespaceIndentation: All
+IndentWidth: 4
 AccessModifierOffset: -4
 FixNamespaceComments: false
 AlwaysBreakTemplateDeclarations: Yes
