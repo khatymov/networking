@@ -11,8 +11,9 @@
 #include <vector>
 #include <assert.h>
 
-//TODO check what is the perfect size for socket
+//TODO check what is the perfect size for a socket
 #define DATA_SIZE 65535
+//#define DATA_SIZE 8
 
 /*! \struct Packet
  * \brief Holds a header and the data

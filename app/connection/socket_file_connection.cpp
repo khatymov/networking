@@ -87,8 +87,8 @@ void SocketFileConnection::_handlePacket() {
             std::string fileName(_packet.payload, _packet.header.length);
             // ['/path/to/filename' -> 'filename' ] get only name without some paths
             if (fileName.find('/') != string::npos) {
-                size_t last_slash_i = fileName.rfind('/');
-                fileName = fileName.substr(last_slash_i + 1, fileName.size());
+                size_t lastSlashIndx = fileName.rfind('/');
+                fileName = fileName.substr(lastSlashIndx + 1, fileName.size());
             }
 
             if (fileHandler.isFileExist(fileName)) {

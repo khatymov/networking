@@ -38,6 +38,12 @@ void Cryptographer::encode(const string& str) {
 //
 //    std::cout << "Encoded Key: " << encoded << std::endl;
 
+    // An initialization vector (IV) or starting variable (SV)[5] is a block of bits that is used by several modes to randomize
+    // the encryption and hence to produce distinct ciphertexts even if the same plaintext is encrypted multiple times,
+    // without the need for a slower re-keying process.
+    //AES (Advanced Encryption Standard)
+    // CryptoPP::AES::BLOCKSIZE = 16
+    cout << "CryptoPP::AES::BLOCKSIZE: " << CryptoPP::AES::BLOCKSIZE << "\n";
     CryptoPP::byte iv[CryptoPP::AES::BLOCKSIZE];
 //    memset(key, 0x00, CryptoPP::AES::DEFAULT_KEYLENGTH);
     memset(iv, 0x00, CryptoPP::AES::BLOCKSIZE);
@@ -45,6 +51,7 @@ void Cryptographer::encode(const string& str) {
     char plaintext[] = "Hello World!";  // Data to encrypt
     std::string ciphertext;
     try {
+        //CBC Mode is cipher block chaining
         CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption encryptor;
         encryptor.SetKeyWithIV((CryptoPP::byte*)key.data(), sizeof(key), iv);
 
@@ -60,14 +67,14 @@ void Cryptographer::encode(const string& str) {
         exit(1);
     }
 
-    std::string encoded;
-    CryptoPP::StringSource ss2(ciphertext, true,
-                               new CryptoPP::HexEncoder(
-                                   new CryptoPP::StringSink(encoded)
-                                       ) // HexEncoder
-    ); // StringSource
-
-    std::cout << "Ciphertext (Hex): " << encoded << std::endl;
+//    std::string encoded;
+//    CryptoPP::StringSource ss2(ciphertext, true,
+//                               new CryptoPP::HexEncoder(
+//                                   new CryptoPP::StringSink(encoded)
+//                                       ) // HexEncoder
+//    ); // StringSource
+//
+//    std::cout << "Ciphertext (Hex): " << encoded << std::endl;
 
     CryptoPP::byte iv2[CryptoPP::AES::BLOCKSIZE];
     //    memset(key, 0x00, CryptoPP::AES::DEFAULT_KEYLENGTH);
