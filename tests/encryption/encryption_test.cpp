@@ -13,13 +13,20 @@ using namespace CryptoPP;
 #include <cryptopp/base64.h>
 #include <cryptopp/osrng.h>
 
+template <typename R>
+class Sample {
+public:
+    virtual void encrypt(std::span<R> source, std::span<R> cipher) = 0;
+    virtual ~Sample() = default;
+};
+
 template <typename T, typename K>
 class ICryptographer {
 public:
     virtual void setKey() = 0;
     virtual void encrypt(T& plainText, K& ciphertext, size_t& outLen) = 0;
-    virtual void decrypt(T& ciphertext, K& plainText) = 0;
-    virtual ~ICryptographer() {};
+    virtual void decrypt(K& ciphertext, T& plainText) = 0;
+    virtual ~ICryptographer() = default;
 };
 
 template <typename T, typename K>
@@ -50,7 +57,8 @@ public:
             CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption encryptor;
             encryptor.SetKeyWithIV((CryptoPP::byte*)_key.data(), _key.size(), iv);
 
-//            CryptoPP::ArraySink cs(cipherText, outLen);
+           CryptoPP::ArraySink cs(cipherText, outLen);
+           CryptoPP::StreamTransformationFilter st;
             // The StreamTransformationFilter adds padding as required. AES uses PKCS #7 padding by default.
             CryptoPP::StringSource ss(plainText, true,
                                       new CryptoPP::StreamTransformationFilter(encryptor, new CryptoPP::ArraySink(cipherText, DATA_SIZE)
