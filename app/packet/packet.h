@@ -12,7 +12,7 @@
 #include <assert.h>
 
 //TODO check what is the perfect size for a socket
-#define DATA_SIZE 32
+#define DATA_SIZE 1024
 //#define DATA_SIZE 8
 
 
