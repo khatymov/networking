@@ -2,9 +2,11 @@ cmake_minimum_required(VERSION 3.2)
 project(run_unit_tests LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_FLAGS "-ggdb -fprofile-arcs -ftest-coverage")
 
+set(CMAKE_CXX_FLAGS "-ggdb -fprofile-arcs -ftest-coverage")
 SET(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
 
 find_package(GTest REQUIRED)
 

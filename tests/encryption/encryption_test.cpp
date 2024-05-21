@@ -12,12 +12,15 @@ using namespace CryptoPP;
 #include <iostream>
 #include <cryptopp/base64.h>
 #include <cryptopp/osrng.h>
+#include <cryptopp/files.h>
+
+#include <span>
 
 template <typename R>
-class Sample {
+class CryptographerInterface {
 public:
     virtual void encrypt(std::span<R> source, std::span<R> cipher) = 0;
-    virtual ~Sample() = default;
+    virtual ~CryptographerInterface() = default;
 };
 
 template <typename T, typename K>
@@ -28,6 +31,156 @@ public:
     virtual void decrypt(K& ciphertext, T& plainText) = 0;
     virtual ~ICryptographer() = default;
 };
+
+
+class ICryptographerInterface {
+public:
+    virtual void encrypt(const Packet& source, CryptoPacket& cipher) = 0;
+    virtual void decrypt(const CryptoPacket& cipher, Packet& source) = 0;
+    virtual ~ICryptographerInterface() = default;
+};
+
+class CryptoImpl: public ICryptographerInterface {
+public:
+
+
+    void encrypt(const Packet& source, CryptoPacket& cipher) override {
+
+        CryptoPP::byte iv[CryptoPP::AES::BLOCKSIZE];
+        memset(iv, 0x00, CryptoPP::AES::BLOCKSIZE);
+
+        HexEncoder encoder(new FileSink(cout));
+
+        try {
+            CBC_Mode<AES>::Encryption enc;
+            enc.SetKeyWithIV((CryptoPP::byte*)_key.data(), _key.size(), iv, sizeof(iv));
+
+            // Make room for padding
+//            cipher.resize(plain.size()+AES::BLOCKSIZE);
+            ArraySink cs(&cipher.payload[0], source.header.length + AES::BLOCKSIZE);
+
+            const char* tmp = source.payload;
+
+            ArraySource(reinterpret_cast<const CryptoPP::byte*>(source.payload), source.header.length, true, new StreamTransformationFilter(enc, new Redirector(cs)));
+
+            // Set cipher text length now that its known
+            cipher.header.length = cs.TotalPutLength();
+
+            cout << "Cipher text: ";
+            encoder.Put(&cipher.payload[0], cipher.header.length);
+            encoder.MessageEnd();
+            cout << endl;
+        } catch (const CryptoPP::Exception& e) {
+            std::cerr << e.what() << std::endl;
+            exit(1);
+        }
+    }
+
+    void decrypt(const CryptoPacket& cipher, Packet& source) override {
+
+        HexEncoder encoder(new FileSink(cout));
+
+        CryptoPP::byte iv[CryptoPP::AES::BLOCKSIZE];
+        memset(iv, 0x00, CryptoPP::AES::BLOCKSIZE);
+
+        CBC_Mode<AES>::Decryption dec;
+        dec.SetKeyWithIV((CryptoPP::byte*)_key.data(), _key.size(), iv, sizeof(iv));
+
+        const auto sz = cipher.header.length;
+//        ArraySink rs(&source.payload, sz);
+        ArraySink rs(reinterpret_cast<CryptoPP::byte*>(source.payload), sz);
+
+        ArraySource(cipher.payload.data(), cipher.header.length, true,
+                    new StreamTransformationFilter(dec, new Redirector(rs)));
+
+
+        source.header.length = rs.TotalPutLength();
+        cout << "Recovered size: " << rs.TotalPutLength()  <<" \ntext: " << source.payload;
+//        encoder.Put(&source.payload[0], sz);
+//        encoder.MessageEnd();
+        cout << endl;
+    }
+
+    // Function to generate a random key
+    void GenerateAndSaveKey(const std::string& filename) {
+        CryptoPP::AutoSeededRandomPool rnd;
+        CryptoPP::SecByteBlock key(CryptoPP::AES::DEFAULT_KEYLENGTH);
+
+        // Generate a random key
+        rnd.GenerateBlock(key, key.size());
+
+        // Save the key to a file
+        CryptoPP::HexEncoder encoder(new CryptoPP::FileSink(filename.c_str()));
+        encoder.Put(key, key.size());
+        encoder.MessageEnd();
+
+        std::cout << "Key saved to " << filename << std::endl;
+    }
+
+    // set a key from env var
+    bool setKey() {
+        const char* envKey = std::getenv("myKey");
+        if (!envKey) {
+            std::cerr << "Environment variable MY_APP_KEY is not set!" << std::endl;
+            return false;
+        } else {
+            _key = envKey;
+        }
+
+        return true;
+    };
+
+private:
+    string _key = "5E462EA6BD40B083F5F2C4B810A07230";
+};
+
+TEST(test_encryption, test_char_array) {
+
+
+    std::string keyFile = "key.hex";
+
+    // encrypt plain packet into crypto packet
+    CryptoPacket cryptoPacket;
+    {
+        FileHandler fileReader;
+        fileReader.open("../../data/Somedata.txt", "rb");
+        Packet packetClient;
+        fileReader.read(packetClient);
+        CryptoImpl crypto_impl_client;
+
+
+        // Generate and save the key
+//        crypto_impl_client.GenerateAndSaveKey(keyFile);
+        crypto_impl_client.encrypt(packetClient, cryptoPacket);
+    }
+
+
+    // decrypt crypto packet into plain packet
+
+    {
+        Packet packetServer;
+        packetServer.payload[0] = 'H';
+        FileHandler fileWriter;
+        fileWriter.open("recovered.txt", "w");
+        CryptoImpl crypto_impl_server;
+        crypto_impl_server.decrypt(cryptoPacket, packetServer);
+//        cout << packetServer.payload << endl;
+        fileWriter.write(packetServer);
+        fileWriter.close();
+    }
+
+
+
+
+    // зашифровать данные в пакете так, чтобы класс можно было переиспользовать для простого шифрования строки
+//    CryptographerImlp<char []> cryptographerImlp;
+
+//    CryptographerImlp<CryptoPP::byte [] , char []> decryptor;
+//    decryptor.setKey();
+//    Packet res;
+//    decryptor.decrypt(cipherText, res.payload);
+//    cout << res.payload << endl;
+}
 
 template <typename T, typename K>
 class CryptographerImlp: public ICryptographer<T, K> {
@@ -49,24 +202,24 @@ public:
         //    memset(key, 0x00, CryptoPP::AES::DEFAULT_KEYLENGTH);
         memset(iv, 0x00, CryptoPP::AES::BLOCKSIZE);
 
-//        char plaintext[] = "Hello World!";  // Data to encrypt
-//        std::string ciphertext;
+        //        char plaintext[] = "Hello World!";  // Data to encrypt
+        //        std::string ciphertext;
 
         try {
             //CBC Mode is cipher block chaining
             CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption encryptor;
             encryptor.SetKeyWithIV((CryptoPP::byte*)_key.data(), _key.size(), iv);
 
-           CryptoPP::ArraySink cs(cipherText, outLen);
-           CryptoPP::StreamTransformationFilter st;
+            CryptoPP::ArraySink cs(cipherText, outLen);
+            CryptoPP::StreamTransformationFilter st;
             // The StreamTransformationFilter adds padding as required. AES uses PKCS #7 padding by default.
             CryptoPP::StringSource ss(plainText, true,
                                       new CryptoPP::StreamTransformationFilter(encryptor, new CryptoPP::ArraySink(cipherText, DATA_SIZE)
                                                                                    ) // StreamTransformationFilter
             ); // StringSource
-//            outLen = cs.TotalPutLength();
-//            ciphertext.size();
-//            std::cout << ciphertext.size() << std::endl;
+                                                                                      //            outLen = cs.TotalPutLength();
+                                                                                      //            ciphertext.size();
+                                                                                      //            std::cout << ciphertext.size() << std::endl;
         }
         catch(const CryptoPP::Exception& e) {
             std::cerr << e.what() << std::endl;
@@ -81,7 +234,7 @@ public:
 
 
         //    key[key.size() - 1] = '=';
-//        std::string decryptedtext;
+        //        std::string decryptedtext;
         try {
             CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption decryptor;
             decryptor.SetKeyWithIV((CryptoPP::byte*)_key.data(), _key.size(), iv);
@@ -89,9 +242,9 @@ public:
             // The StreamTransformationFilter removes
             // padding as required.
             CryptoPP::ArraySource s(ciphertext, true,
-                                     new CryptoPP::StreamTransformationFilter(decryptor,
-                                                                              new CryptoPP::ArraySink(plainText, DATA_SIZE)
-                                                                                  ) // StreamTransformationFilter
+                                    new CryptoPP::StreamTransformationFilter(decryptor,
+                                                                             new CryptoPP::ArraySink(plainText, DATA_SIZE)
+                                                                                 ) // StreamTransformationFilter
             ); // StringSource
         }
         catch(const CryptoPP::Exception& e) {
@@ -105,32 +258,5 @@ public:
 
 private:
     string _key;
-//    CryptoPP::byte iv[CryptoPP::AES::BLOCKSIZE] = {8,7,6,5, 8,7,6,5, 8,7,6,5, 8,7,6,5};
+    //    CryptoPP::byte iv[CryptoPP::AES::BLOCKSIZE] = {8,7,6,5, 8,7,6,5, 8,7,6,5, 8,7,6,5};
 };
-
-TEST(test_encryption, test_char_array)
-{
-    FileHandler fileReader;
-    fileReader.open("../../data/Somedata.txt", "rb");
-    Packet packet;
-    fileReader.read(packet);
-    // зашифровать данные в пакете так, чтобы класс можно было переиспользовать для простого шифрования строки
-//    CryptographerImlp<char []> cryptographerImlp;
-    CryptographerImlp<char [], CryptoPP::byte []> encrypter;
-//    CryptographerImlp<char *, CryptoPP::byte *> encrypter;
-
-    CryptoPP::byte cipherText[DATA_SIZE];
-    encrypter.setKey();
-//    string cipherText;
-    size_t outSize = packet.header.length + 5;
-    encrypter.encrypt(packet.payload, cipherText, outSize);
-
-//    FileHandler fileWriter;
-//    fileWriter.open("../../data/Decrypted2.txt", "w");
-
-    CryptographerImlp<CryptoPP::byte [] , char []> decryptor;
-    decryptor.setKey();
-    Packet res;
-    decryptor.decrypt(cipherText, res.payload);
-    cout << res.payload << endl;
-}

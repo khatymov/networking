@@ -29,7 +29,9 @@ void FileInterface::open(const string& name, const string& mode) {
 }
 
 FileInterface::~FileInterface() {
-    close();
+    if (m_file != nullptr) {
+        close();
+    }
 }
 std::FILE* FileInterface::get() {
     return m_file;
