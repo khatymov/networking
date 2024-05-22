@@ -12,6 +12,12 @@ using namespace boost::asio::ip;
 SocketFileConnection::SocketFileConnection(tcp::socket socket) : m_socket(std::move(socket)) {
     _ack_packet.header.type = Packet::Type::Ack;
     _ack_packet.header.length = 0;
+
+    if (!_cryptographer.setKey("myKey")) {
+        std::cerr << "Set a key for decryption" << std::endl;
+        exit(1);
+    }
+
 }
 
 void SocketFileConnection::run() {
@@ -25,16 +31,14 @@ void SocketFileConnection::_readHeader() {
     auto self(shared_from_this());
     // 20 packs
     // узкое место - сеть
-    //
-    async_read(m_socket, boost::asio::buffer(&_packet.header, sizeof(_packet.header)),
+    async_read(m_socket, boost::asio::buffer(&_cryptoPacket.header, sizeof(_cryptoPacket.header)),
                [this, self] (boost::system::error_code errorCode, std::size_t length) {
                    if (!errorCode) {
-                       if (_packet.header.length > 0) {
+                       if (_cryptoPacket.header.length > 0) {
                            _readPayload();
                        } else {
                            _writeHeader(_ack_packet);
                        }
-
                    } else {
                        spdlog::error("error header: {}", errorCode.message());
                        m_socket.close();
@@ -44,7 +48,7 @@ void SocketFileConnection::_readHeader() {
 
 void SocketFileConnection::_readPayload() {
     auto self(shared_from_this());
-    async_read(m_socket, boost::asio::buffer(&_packet.payload, _packet.header.length),
+    async_read(m_socket, boost::asio::buffer(&_cryptoPacket.payload, _cryptoPacket.header.length),
                [this, self] (boost::system::error_code errorCode, std::size_t length) {
                    if (!errorCode) {
                        _handlePacket();//gateway распределение мощности
@@ -77,6 +81,7 @@ void SocketFileConnection::_writePayload(const Packet& packet) {
 }
 
 void SocketFileConnection::_handlePacket() {
+    _cryptographer.decrypt(_cryptoPacket, _packet);
     // add functions for every case
     switch (_packet.header.type) {
         case (Packet::Type::FileName): {
@@ -87,8 +92,8 @@ void SocketFileConnection::_handlePacket() {
             std::string fileName(_packet.payload, _packet.header.length);
             // ['/path/to/filename' -> 'filename' ] get only name without some paths
             if (fileName.find('/') != string::npos) {
-                size_t last_slash_i = fileName.rfind('/');
-                fileName = fileName.substr(last_slash_i + 1, fileName.size());
+                size_t lastSlashIndx = fileName.rfind('/');
+                fileName = fileName.substr(lastSlashIndx + 1, fileName.size());
             }
 
             if (fileHandler.isFileExist(fileName)) {
@@ -108,7 +113,6 @@ void SocketFileConnection::_handlePacket() {
         };
         case (Packet::Type::Hash): {
             // at this step we generate a hash for current file and compare it with a hash that client sent to us
-
             // need to close file because it adds EOL
             fileHandler.close();
 

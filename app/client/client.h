@@ -11,6 +11,7 @@
 #include <string>
 
 #include "common.h"
+#include "cryptographer.h"
 
 /*! \class Client
  * \brief The purpose of this Client class is reading data
@@ -44,11 +45,12 @@ public:
     [[nodiscard]] bool sendFile(const std::string& fileName);
 
 private:
-
     //! \brief asio context handles the data transfer...
     boost::asio::io_context m_context;
     //! \brief using to resolve hostname/ip-address into tangiable physical address
     boost::asio::ip::tcp::endpoint m_endpoint;
     //! \brief socket allows us to connect to the server
     boost::asio::ip::tcp::socket m_socket;
+
+    Cryptographer _cryptographer;
 };

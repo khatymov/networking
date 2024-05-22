@@ -10,12 +10,12 @@
 #include "server.h"
 #include "client.h"
 #include "timer.h"
+#include "cryptographer.h"
 
 using boost::asio::ip::tcp;
 
 using namespace std;
 
-#include <cstdio>
 
 int main(int argc, char* argv[]) {
 
