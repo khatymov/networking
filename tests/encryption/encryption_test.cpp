@@ -20,13 +20,19 @@ TEST(test_encryption, test_char_array) {
     fileReader.open("../../data/Somedata.txt", "rb");
     CryptoPacket cryptoPacket;
     Cryptographer cryptoClient;
-    cryptoClient.setKey("myKey");
+    if (!cryptoClient.setKey("myKey")) {
+        std::cerr << "Set a key for encryption" << std::endl;
+        exit(1);
+    }
     // Server side
 //    Packet packetServer;
     FileHandler fileWriter;
     fileWriter.open("recovered.txt", "w");
     Cryptographer cryptoServer;
-    cryptoServer.setKey("myKey");
+    if (!cryptoServer.setKey("myKey")) {
+        std::cerr << "Set a key for encryption" << std::endl;
+        exit(1);
+    }
     Packet packetServer;
     do {
         fileReader.read(packetClient);
@@ -50,7 +56,11 @@ TEST(test_encryption, test_file_name) {
         packetClient.header.length = fileName.size();
         memcpy(packetClient.payload, fileName.c_str(), fileName.size());
         Cryptographer crypto_impl_client;
-        crypto_impl_client.setKey("myKey");
+
+        if (!crypto_impl_client.setKey("myKey")) {
+            std::cerr << "Set a key for encryption" << std::endl;
+            exit(1);
+        }
         // Generate and save the key
         crypto_impl_client.encrypt(packetClient, cryptoPacket);
     }
@@ -58,7 +68,10 @@ TEST(test_encryption, test_file_name) {
     {
         Packet packetServer;
         Cryptographer crypto_impl_server;
-        crypto_impl_server.setKey("myKey");
+        if (!crypto_impl_server.setKey("myKey")) {
+            std::cerr << "Set a key for encryption" << std::endl;
+            exit(1);
+        }
         crypto_impl_server.decrypt(cryptoPacket, packetServer);
         string res(packetServer.payload, packetServer.header.length);
         EXPECT_TRUE(res == fileName);

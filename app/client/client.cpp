@@ -15,7 +15,12 @@ using namespace boost::asio::ip;
 Client::Client(const std::string& ip, const uint port)
     : m_endpoint{address::from_string(ip), static_cast<port_type>(port)}
     , m_socket{m_context} {
-    _cryptographer.setKey("myKey");
+
+    if (!_cryptographer.setKey("myKey")) {
+        std::cerr << "Set a key for encryption" << std::endl;
+        exit(1);
+    }
+
 }
 
 [[maybe_unused]] bool Client::connect() {

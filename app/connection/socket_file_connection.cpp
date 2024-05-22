@@ -12,7 +12,12 @@ using namespace boost::asio::ip;
 SocketFileConnection::SocketFileConnection(tcp::socket socket) : m_socket(std::move(socket)) {
     _ack_packet.header.type = Packet::Type::Ack;
     _ack_packet.header.length = 0;
-    _cryptographer.setKey("myKey");
+
+    if (!_cryptographer.setKey("myKey")) {
+        std::cerr << "Set a key for decryption" << std::endl;
+        exit(1);
+    }
+
 }
 
 void SocketFileConnection::run() {
