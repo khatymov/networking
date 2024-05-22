@@ -67,7 +67,9 @@ bool Client::sendFile(const std::string& fileName) {
                 break;
             }
 
-            if (!writeToSocket(m_socket, packet, ec)) {
+            cryptographer.encrypt(packet, cryptoPacket);
+
+            if (!writeToSocketCrypto(m_socket, cryptoPacket, ec)) {
                 return false;
             }
 
@@ -83,7 +85,9 @@ bool Client::sendFile(const std::string& fileName) {
         const auto hash = fileHandler.getFileHash(fileName);
         memcpy(packet.payload, hash.c_str(), hash.size());
         packet.header.length = hash.size();
-        if (!writeToSocket(m_socket, packet, ec)) {
+
+        cryptographer.encrypt(packet, cryptoPacket);
+        if (!writeToSocketCrypto(m_socket, cryptoPacket, ec)) {
             return false;
         }
 
@@ -97,7 +101,8 @@ bool Client::sendFile(const std::string& fileName) {
         packet.header.type = Packet::Type::Exit;
         packet.header.length = 1;
 
-        if (!writeToSocket(m_socket, packet, ec)) {
+        cryptographer.encrypt(packet, cryptoPacket);
+        if (!writeToSocketCrypto(m_socket, cryptoPacket, ec)) {
             return false;
         }
 

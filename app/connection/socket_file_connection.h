@@ -42,9 +42,6 @@ protected:
     //! \brief According to type of a packet - use appropriate action
     void _handlePacket();
 
-    //! \brief According to type of a packet - use appropriate action
-    void _handleCryptoPacket();
-
 private:
     //private variables
     //! \brief Each connection has a unique socket to a remote

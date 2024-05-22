@@ -55,7 +55,7 @@ using boost::system::error_code;
 
 [[nodiscard]] static bool writeToSocketCrypto(ip::tcp::socket& socket, const CryptoPacket& packet, boost::system::error_code& ec) {
     //send header
-    auto sentHeaderSize = write(socket, boost::asio::buffer(&packet.header, sizeof(packet.header) + sizeof(size_t)), transfer_exactly(sizeof(packet.header) + sizeof(size_t)), ec);
+    auto sentHeaderSize = write(socket, boost::asio::buffer(&packet.header, sizeof(packet.header)), transfer_exactly(sizeof(packet.header)), ec);
     if (ec)
     {
         spdlog::error("Send packet header error: {}", ec.message());
