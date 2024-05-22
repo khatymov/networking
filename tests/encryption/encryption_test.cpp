@@ -13,29 +13,30 @@ using namespace testing;
 #include "cryptographer.h"
 
 TEST(test_encryption, test_char_array) {
-    std::string keyFile = "key.hex";
-    // encrypt plain packet into crypto packet
-    CryptoPacket cryptoPacket;
-    {
-        FileHandler fileReader;
-        fileReader.open("../../data/Somedata.txt", "rb");
-        Packet packetClient;
-        fileReader.read(packetClient);
-        CryptographerImpl crypto_impl_client;
 
-        // Generate and save the key
-        crypto_impl_client.encrypt(packetClient, cryptoPacket);
-    }
-    // decrypt crypto packet into plain packet
-    {
-        Packet packetServer;
-        FileHandler fileWriter;
-        fileWriter.open("recovered.txt", "w");
-        CryptographerImpl crypto_impl_server;
-        packetServer = crypto_impl_server.decrypt(cryptoPacket);
+    // Client side
+    Packet packetClient;
+    FileHandler fileReader;
+    fileReader.open("../../data/Somedata.txt", "rb");
+    CryptoPacket cryptoPacket;
+    CryptographerImpl cryptoClient;
+
+    // Server side
+//    Packet packetServer;
+    FileHandler fileWriter;
+    fileWriter.open("recovered.txt", "w");
+    CryptographerImpl cryptoServer;
+
+    do {
+        fileReader.read(packetClient);
+        cryptoClient.encrypt(packetClient, cryptoPacket);
+        Packet packetServer = cryptoServer.decrypt(cryptoPacket);
         fileWriter.write(packetServer);
-        fileWriter.close();
-    }
+        if (packetClient.header.length == 0) {
+            break;
+        }
+
+    } while (true);
 }
 
 TEST(test_encryption, test_file_name) {
@@ -58,7 +59,6 @@ TEST(test_encryption, test_file_name) {
         CryptographerImpl crypto_impl_server;
         packetServer = crypto_impl_server.decrypt(cryptoPacket);
         string res(packetServer.payload, packetServer.header.length);
-//        memcpy(&res, packetServer.payload , packetServer.header.length);
         EXPECT_TRUE(res == fileName);
     }
 }
