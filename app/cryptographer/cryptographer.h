@@ -34,6 +34,7 @@ public:
 
         cipher.header.type = source.header.type;
         cipher.realDatalength = source.header.length;
+        cipher.header.length = source.header.length + AES::BLOCKSIZE;
 
         try {
             CBC_Mode<AES>::Encryption enc;
@@ -57,6 +58,7 @@ public:
 
         source.header.type = cipher.header.type;
         source.header.length = cipher.realDatalength;
+//        source.header.length = cipher.header.length;
 
         try {
             CBC_Mode<AES>::Decryption dec;

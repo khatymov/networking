@@ -8,8 +8,8 @@
 
 #include "common.h"
 #include "connection.h"
+#include "cryptographer.h"
 #include "file_handler.h"
-
 
 /*! \class SocketFileConnection
  * \brief The purpose of this class is to read a packet from a socket and write this data to a file
@@ -42,6 +42,9 @@ protected:
     //! \brief According to type of a packet - use appropriate action
     void _handlePacket();
 
+    //! \brief According to type of a packet - use appropriate action
+    void _handleCryptoPacket();
+
 private:
     //private variables
     //! \brief Each connection has a unique socket to a remote
@@ -50,6 +53,9 @@ private:
     FileHandler fileHandler;
     //! \brief This packet is using through the whole cycle of reading a header and a payload to prevent copying
     Packet _packet;
+    CryptoPacket _cryptoPacket;
     //! \brief Packet for only one purpose - notify client that packet was accepted
     Packet _ack_packet;
+
+    CryptographerImpl cryptographer;
 };

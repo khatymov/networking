@@ -38,6 +38,7 @@ bool Client::sendFile(const std::string& fileName) {
 
     FileHandler fileHandler;
     Packet packet;
+    CryptoPacket cryptoPacket;
     boost::system::error_code ec;
 
     // stage 1 - send file name
@@ -46,7 +47,9 @@ bool Client::sendFile(const std::string& fileName) {
         packet.header.length = fileName.size();
         memcpy(packet.payload, fileName.c_str(), fileName.size());
 
-        if (!writeToSocket(m_socket, packet, ec)) {
+        cryptographer.encrypt(packet, cryptoPacket);
+
+        if (!writeToSocketCrypto(m_socket, cryptoPacket, ec)) {
             return false;
         }
 //    }
