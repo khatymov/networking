@@ -12,7 +12,8 @@
 #include <assert.h>
 
 //TODO check what is the perfect size for a socket
-#define DATA_SIZE 1024
+//should be at least 64 bytes, because of hash size
+#define DATA_SIZE 65535
 //#define DATA_SIZE 8
 
 
@@ -46,7 +47,6 @@ struct Packet {
 
 struct CryptoPacket {
     Packet::Header header{};
-    size_t realDatalength = 0;
+
     std::array<CryptoPP::byte, DATA_SIZE + CryptoPP::AES::BLOCKSIZE> payload;
-    //TODO: add method to check header
 };
