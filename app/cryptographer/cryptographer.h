@@ -33,7 +33,6 @@ public:
         memset(iv, 0x00, CryptoPP::AES::BLOCKSIZE);
 
         cipher.header.type = source.header.type;
-        cipher.realDatalength = source.header.length;
         cipher.header.length = source.header.length + AES::BLOCKSIZE;
 
         try {
@@ -57,14 +56,17 @@ public:
         memset(iv, 0x00, CryptoPP::AES::BLOCKSIZE);
 
         source.header.type = cipher.header.type;
-        source.header.length = cipher.realDatalength;
-//        source.header.length = cipher.header.length;
+        std::vector<CryptoPP::byte> recover;
+        recover.resize(cipher.header.length);
 
         try {
             CBC_Mode<AES>::Decryption dec;
             dec.SetKeyWithIV((CryptoPP::byte*)_key.data(), _key.size(), iv, sizeof(iv));
-            ArraySink rs(reinterpret_cast<CryptoPP::byte*>(source.payload), cipher.header.length);
+            ArraySink rs(&recover[0], cipher.header.length);
             ArraySource(cipher.payload.data(), cipher.header.length, true, new StreamTransformationFilter(dec, new Redirector(rs)));
+            recover.resize(rs.TotalPutLength());
+            source.header.length = rs.TotalPutLength();
+            std::copy(recover.begin(), recover.end(), source.payload);
         } catch (const CryptoPP::Exception& e) {
             std::cerr << e.what() << std::endl;
             exit(1);
