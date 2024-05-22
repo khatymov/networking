@@ -45,20 +45,8 @@ struct Packet {
 #include <cryptopp/osrng.h>
 
 struct CryptoPacket {
-    enum class Type : uint32_t {
-        Ack,      // Confirm that packet received
-        FileName, // name of a transferred file
-        FileData, // File data
-        Hash,     // Hash of a file to compare server and files hash
-        Exit      // Notify - we are done
-    };
-
-    struct Header {
-        Type type{};
-        size_t length = 0;
-    };
-
-    Header header{};
+    Packet::Header header{};
+    size_t realDatalength = 0;
     std::array<CryptoPP::byte, DATA_SIZE + CryptoPP::AES::BLOCKSIZE> payload;
     //TODO: add method to check header
 };
