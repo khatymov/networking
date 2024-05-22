@@ -52,5 +52,5 @@ private:
     //! \brief socket allows us to connect to the server
     boost::asio::ip::tcp::socket m_socket;
 
-    CryptographerImpl cryptographer;
+    Cryptographer _cryptographer;
 };

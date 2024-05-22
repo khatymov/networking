@@ -15,7 +15,7 @@ using namespace boost::asio::ip;
 Client::Client(const std::string& ip, const uint port)
     : m_endpoint{address::from_string(ip), static_cast<port_type>(port)}
     , m_socket{m_context} {
-    cryptographer.setKey("myKey");
+    _cryptographer.setKey("myKey");
 }
 
 [[maybe_unused]] bool Client::connect() {
@@ -49,7 +49,7 @@ bool Client::sendFile(const std::string& fileName) {
         packet.header.length = fileName.size();
         memcpy(packet.payload, fileName.c_str(), fileName.size());
 
-        cryptographer.encrypt(packet, cryptoPacket);
+        _cryptographer.encrypt(packet, cryptoPacket);
 
         if (!writeToSocketCrypto(m_socket, cryptoPacket, ec)) {
             return false;
@@ -69,7 +69,7 @@ bool Client::sendFile(const std::string& fileName) {
                 break;
             }
 
-            cryptographer.encrypt(packet, cryptoPacket);
+            _cryptographer.encrypt(packet, cryptoPacket);
 
             if (!writeToSocketCrypto(m_socket, cryptoPacket, ec)) {
                 return false;
@@ -88,7 +88,7 @@ bool Client::sendFile(const std::string& fileName) {
         memcpy(packet.payload, hash.c_str(), hash.size());
         packet.header.length = hash.size();
 
-        cryptographer.encrypt(packet, cryptoPacket);
+        _cryptographer.encrypt(packet, cryptoPacket);
         if (!writeToSocketCrypto(m_socket, cryptoPacket, ec)) {
             return false;
         }
@@ -103,7 +103,7 @@ bool Client::sendFile(const std::string& fileName) {
         packet.header.type = Packet::Type::Exit;
         packet.header.length = 1;
 
-        cryptographer.encrypt(packet, cryptoPacket);
+        _cryptographer.encrypt(packet, cryptoPacket);
         if (!writeToSocketCrypto(m_socket, cryptoPacket, ec)) {
             return false;
         }

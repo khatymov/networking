@@ -19,13 +19,13 @@ TEST(test_encryption, test_char_array) {
     FileHandler fileReader;
     fileReader.open("../../data/Somedata.txt", "rb");
     CryptoPacket cryptoPacket;
-    CryptographerImpl cryptoClient;
+    Cryptographer cryptoClient;
     cryptoClient.setKey("myKey");
     // Server side
 //    Packet packetServer;
     FileHandler fileWriter;
     fileWriter.open("recovered.txt", "w");
-    CryptographerImpl cryptoServer;
+    Cryptographer cryptoServer;
     cryptoServer.setKey("myKey");
     Packet packetServer;
     do {
@@ -49,7 +49,7 @@ TEST(test_encryption, test_file_name) {
         packetClient.header.type = Packet::Type::FileName;
         packetClient.header.length = fileName.size();
         memcpy(packetClient.payload, fileName.c_str(), fileName.size());
-        CryptographerImpl crypto_impl_client;
+        Cryptographer crypto_impl_client;
         crypto_impl_client.setKey("myKey");
         // Generate and save the key
         crypto_impl_client.encrypt(packetClient, cryptoPacket);
@@ -57,7 +57,7 @@ TEST(test_encryption, test_file_name) {
     // decrypt crypto packet into plain packet
     {
         Packet packetServer;
-        CryptographerImpl crypto_impl_server;
+        Cryptographer crypto_impl_server;
         crypto_impl_server.setKey("myKey");
         crypto_impl_server.decrypt(cryptoPacket, packetServer);
         string res(packetServer.payload, packetServer.header.length);

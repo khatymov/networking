@@ -12,7 +12,7 @@ using namespace boost::asio::ip;
 SocketFileConnection::SocketFileConnection(tcp::socket socket) : m_socket(std::move(socket)) {
     _ack_packet.header.type = Packet::Type::Ack;
     _ack_packet.header.length = 0;
-    cryptographer.setKey("myKey");
+    _cryptographer.setKey("myKey");
 }
 
 void SocketFileConnection::run() {
@@ -76,7 +76,7 @@ void SocketFileConnection::_writePayload(const Packet& packet) {
 }
 
 void SocketFileConnection::_handlePacket() {
-     cryptographer.decrypt(_cryptoPacket, _packet);
+    _cryptographer.decrypt(_cryptoPacket, _packet);
     // add functions for every case
     switch (_packet.header.type) {
         case (Packet::Type::FileName): {

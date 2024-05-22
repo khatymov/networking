@@ -23,7 +23,7 @@
 
 using namespace CryptoPP;
 
-class CryptographerImpl {
+class Cryptographer {
 public:
     // Why should we use new in ArraySource
     //    https://cryptopp.com/wiki/Pipelining#Ownership

@@ -54,5 +54,5 @@ private:
     //! \brief Packet for only one purpose - notify client that packet was accepted
     Packet _ack_packet;
 
-    CryptographerImpl cryptographer;
+    Cryptographer _cryptographer;
 };
