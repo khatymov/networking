@@ -26,11 +26,11 @@ TEST(test_encryption, test_char_array) {
     FileHandler fileWriter;
     fileWriter.open("recovered.txt", "w");
     CryptographerImpl cryptoServer;
-
+    Packet packetServer;
     do {
         fileReader.read(packetClient);
         cryptoClient.encrypt(packetClient, cryptoPacket);
-        Packet packetServer = cryptoServer.decrypt(cryptoPacket);
+        cryptoServer.decrypt(cryptoPacket, packetServer);
         fileWriter.write(packetServer);
         if (packetClient.header.length == 0) {
             break;
@@ -57,7 +57,7 @@ TEST(test_encryption, test_file_name) {
     {
         Packet packetServer;
         CryptographerImpl crypto_impl_server;
-        packetServer = crypto_impl_server.decrypt(cryptoPacket);
+        crypto_impl_server.decrypt(cryptoPacket, packetServer);
         string res(packetServer.payload, packetServer.header.length);
         EXPECT_TRUE(res == fileName);
     }

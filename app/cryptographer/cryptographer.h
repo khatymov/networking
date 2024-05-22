@@ -49,13 +49,12 @@ public:
         }
     }
 
-    Packet decrypt(const CryptoPacket& cipher) {
-        Packet source;
-
+    void decrypt(const CryptoPacket& cipher, Packet& plainPacket) {
         CryptoPP::byte iv[CryptoPP::AES::BLOCKSIZE];
         memset(iv, 0x00, CryptoPP::AES::BLOCKSIZE);
 
-        source.header.type = cipher.header.type;
+        plainPacket.header.type = cipher.header.type;
+        //TODO: rethink approach
         std::vector<CryptoPP::byte> recover;
         recover.resize(cipher.header.length);
 
@@ -65,18 +64,16 @@ public:
             ArraySink rs(&recover[0], cipher.header.length);
             ArraySource(cipher.payload.data(), cipher.header.length, true, new StreamTransformationFilter(dec, new Redirector(rs)));
             recover.resize(rs.TotalPutLength());
-            source.header.length = rs.TotalPutLength();
-            std::copy(recover.begin(), recover.end(), source.payload);
+            plainPacket.header.length = rs.TotalPutLength();
+            std::copy(recover.begin(), recover.end(), plainPacket.payload);
         } catch (const CryptoPP::Exception& e) {
             std::cerr << e.what() << std::endl;
             exit(1);
         }
-
-        return source;
     }
 
     // Function to generate a random key
-    void GenerateAndSaveKey(const std::string& filename) {
+    static void GenerateAndSaveKey(const std::string& filename) {
         CryptoPP::AutoSeededRandomPool rnd;
         CryptoPP::SecByteBlock key(CryptoPP::AES::DEFAULT_KEYLENGTH);
 
@@ -92,8 +89,8 @@ public:
     }
 
     // set a key from env var
-    bool setKey() {
-        const char* envKey = std::getenv("myKey");
+    bool setKey(const std::string& envKeyName) {
+        const char* envKey = std::getenv(envKeyName.c_str());
         if (!envKey) {
             std::cerr << "Environment variable MY_APP_KEY is not set!" << std::endl;
             return false;
@@ -105,5 +102,5 @@ public:
     };
 
 private:
-    std::string _key = "5E462EA6BD40B083F5F2C4B810A07230";
+    std::string _key;// = "5E462EA6BD40B083F5F2C4B810A07230";
 };

@@ -12,6 +12,7 @@ using namespace boost::asio::ip;
 SocketFileConnection::SocketFileConnection(tcp::socket socket) : m_socket(std::move(socket)) {
     _ack_packet.header.type = Packet::Type::Ack;
     _ack_packet.header.length = 0;
+    cryptographer.setKey("myKey");
 }
 
 void SocketFileConnection::run() {
@@ -75,7 +76,7 @@ void SocketFileConnection::_writePayload(const Packet& packet) {
 }
 
 void SocketFileConnection::_handlePacket() {
-    _packet = cryptographer.decrypt(_cryptoPacket);
+     cryptographer.decrypt(_cryptoPacket, _packet);
     // add functions for every case
     switch (_packet.header.type) {
         case (Packet::Type::FileName): {
@@ -103,13 +104,10 @@ void SocketFileConnection::_handlePacket() {
         case (Packet::Type::FileData): {
             // at this step we write data from socket to file
             fileHandler.write(_packet);
-//            fileHandler.close();
-//            cout << "DATA: " << _packet.payload << endl;
             break;
         };
         case (Packet::Type::Hash): {
             // at this step we generate a hash for current file and compare it with a hash that client sent to us
-
             // need to close file because it adds EOL
             fileHandler.close();
 

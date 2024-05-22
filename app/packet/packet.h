@@ -11,12 +11,11 @@
 #include <vector>
 #include <assert.h>
 
-//TODO check what is the perfect size for a socket
+#include <cryptopp/base64.h>
+#include <cryptopp/osrng.h>
+
 //should be at least 64 bytes, because of hash size
 #define DATA_SIZE 65535
-//#define DATA_SIZE 8
-
-
 
 /*! \struct Packet
  * \brief Holds a header and the data
@@ -38,15 +37,9 @@ struct Packet {
 
     Header header{};
     char payload[DATA_SIZE];
-
-    //TODO: add method to check header
 };
-
-#include <cryptopp/base64.h>
-#include <cryptopp/osrng.h>
 
 struct CryptoPacket {
     Packet::Header header{};
-
     std::array<CryptoPP::byte, DATA_SIZE + CryptoPP::AES::BLOCKSIZE> payload;
 };
