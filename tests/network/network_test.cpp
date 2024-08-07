@@ -186,13 +186,16 @@ TEST(test_packet, test_packet_template)
 
 template<typename PacketType = MyPacket<char>>
 class PacketFlow {
+    PacketFlow(const PacketFlow&) = delete;
+    PacketFlow(PacketFlow&&) = delete;
+    PacketFlow operator=(const PacketFlow&) = delete;
+    PacketFlow operator=(PacketFlow&&) = delete;
 public:
     enum class Stage : uint32_t {
         Socket,
         Crypto,
         File
     };
-
 
     explicit PacketFlow() {
         for (size_t i = 0; i < packetNum_; i++) {
@@ -201,12 +204,11 @@ public:
     }
 
     std::unique_ptr<PacketType> getPacket(const Stage& stage) {
-        spdlog::info("Kakoi deadlock nahui");
+//        spdlog::info("Kakoi deadlock nahui");
         std::unique_ptr<PacketType> packet;
         auto* currentQueue = getQueueForStage(stage);
         {
             std::lock_guard<std::mutex> lockGuard(mutex_);
-            spdlog::info("Print me");
             if (not currentQueue->empty()) {
                 packet = std::move(currentQueue->front());
                 currentQueue->pop();
@@ -375,12 +377,13 @@ public:
     }
 
     void waitNextDataImpl() {
+        std::cout << "FileWriter void waitNextDataImpl() " << std::endl;
         while (!(packet_ = packetFlow_->getPacket(PacketFlow<T>::Stage::File))) {
             std::this_thread::yield();
-            std::cout << "waitNextData() queue File is empty" << std::endl;
+//            std::cout << "FileWriter waitNextData() queue File is empty" << std::endl;
             continue;
         }
-        std::cout << "waitNextData() got the packet" << std::endl;
+        std::cout << "FileWriter waitNextData() got the packet" << std::endl;
     }
 
     void processDataImpl() {
@@ -438,8 +441,6 @@ public:
         packetFlow_->setPacketForNextStage(PacketFlow<T>::Stage::Socket, std::move(packet_));
         std::cout << "notifyComplete()" << std::endl;
     }
-
-
 
     bool isFileExist(const string& fileName) {
         return std::filesystem::exists(fileName);
@@ -546,7 +547,13 @@ public:
     MyConnection(boost::asio::ip::tcp::socket socket, std::shared_ptr<PacketFlow<T>> packetFlow)
         :socket_(std::move(socket)),
          packetFlow_(packetFlow)
-    {}
+    {
+        cout << "PTR COUNTER in MyConnection(): " << packetFlow_.use_count() << endl;
+    }
+
+    ~MyConnection() {
+        cout << "~MyConnection(): " << endl;
+    }
 
     void run() {
         waitNextDataImpl();
@@ -556,9 +563,10 @@ public:
     // will be used for a recursive call
     void waitNextDataImpl() {
         spdlog::info("Connection waitNextDataImpl");
+        cout << "PTR COUNTER in waitNextDataImpl: " << packetFlow_.use_count() << endl;
         while (!(packet_ = packetFlow_->getPacket(PacketFlow<T>::Stage::Socket))) {
             std::this_thread::yield();
-            std::cout << "waitNextData() queue Socket is empty" << std::endl;
+//            std::cout << "waitNextData() queue Socket is empty" << std::endl;
             continue;
         }
         processDataImpl();
@@ -614,8 +622,11 @@ protected:
                                         spdlog::error("Read header error: {}", errorCode.message());
                                         socket_.close();
                                     } else {
+                                        std::string str(packet_->data.data(), packet_->header.length);
+                                        spdlog::info("Connection got data: {}", str);
                                         T packetAck;
                                         packetAck.header.type = Header::Type::Ack;
+                                        packetAck.header.length = 0;
                                         writeHeader_(packetAck);
                                     }
                                 });
@@ -637,7 +648,7 @@ protected:
     void writePayload_(const T& packet) {
         auto self = this->shared_from_this();
         boost::asio::async_write(socket_, boost::asio::buffer(&packet.data, packet.header.length),
-                                 [this, self, packet](boost::system::error_code errorCode, std::size_t /*length*/) {
+                                 [this, self](boost::system::error_code errorCode, std::size_t /*length*/) {
                                      if (errorCode) {
                                          spdlog::error("Send packet payload error: {}", errorCode.message());
                                          socket_.close();
@@ -662,16 +673,18 @@ public:
 
     template <typename T = MyPacket<char>>
     void run(std::shared_ptr<PacketFlow<T>> packetFlow) {
+        cout << "PTR COUNTER in run(): " << packetFlow.use_count() << endl;
         waitNewConnection_<T>(packetFlow);
     }
 
 protected:
     template <typename T = MyPacket<char>>
     void waitNewConnection_(std::shared_ptr<PacketFlow<T>> packetFlow) {
-        acceptor_.async_accept([this, &packetFlow] (boost::system::error_code errorCode, tcp::socket socket)
+        acceptor_.async_accept([this, packetFlow] (boost::system::error_code errorCode, tcp::socket socket)
         {
             if (!errorCode) {
                 spdlog::info("New connection.");
+                cout << "PTR COUNTER in acceptor_.async_accept: " << packetFlow.use_count() << endl;
                 std::make_shared<MyConnection<T>>(std::move(socket), packetFlow)->run();
             } else {
                 spdlog::error("New connection error: {}", errorCode.message());
@@ -729,6 +742,10 @@ namespace SocketIO {
 
 
 class MyClient {
+    MyClient(const MyClient&) = delete;
+    MyClient(MyClient&&) = delete;
+    MyClient operator=(const MyClient&) = delete;
+    MyClient operator=(MyClient&&) = delete;
 public:
     MyClient(const std::string& ip = "127.0.0.1", const uint port = 1234)
     : endpoint_{address::from_string(ip), static_cast<port_type>(port)}
@@ -764,6 +781,36 @@ public:
             if (!SocketIO::writeToSocket(socket_, packet, ec)) {
                 return false;
             }
+
+            if (!SocketIO::readFromSocket(socket_, packet, ec))  {
+                spdlog::error("Didn't get ack packet for FileData packet");
+            }
+        }
+        // stage 2 - send data from file to socket
+        {
+            std::FILE* m_file = std::fopen(fileName.c_str(), "r");
+            if (m_file == nullptr) {
+                throw std::runtime_error("Can't open a file" + fileName);
+            }
+            MyPacket<char> packet;
+            do {
+                packet.header.length = std::fread(&packet.data, sizeof(char), DATA_SIZE, m_file);
+                packet.header.type = Header::Type::FileData;
+                const bool everything_done = packet.header.length == 0;
+
+                if (everything_done)
+                {
+                    break;
+                }
+
+                if (!SocketIO::writeToSocket(socket_, packet, ec)) {
+                    return false;
+                }
+
+                if (!SocketIO::readFromSocket(socket_, packet, ec))  {
+                    spdlog::error("Didn't get ack packet for FileData packet");
+                }
+            } while (true);
         }
 
         // stage 4 - send exit and finish
@@ -789,10 +836,10 @@ public:
     boost::asio::ip::tcp::endpoint endpoint_;
     //! \brief socket allows us to connect to the server
     boost::asio::ip::tcp::socket socket_;
-
 };
 
 TEST(test_connection, test_costructor) {
+    std::chrono::seconds duration(2);
     auto packetFlow = std::make_shared<PacketFlow<>>();
     boost::asio::io_context io_context;
     MyServer myServer(io_context);
@@ -800,30 +847,62 @@ TEST(test_connection, test_costructor) {
 
     // Number of threads you want to run io_context in.
     const std::size_t num_threads = 1;// std::thread::hardware_concurrency();
-
     std::vector<std::thread> threads;
     for(std::size_t i = 0; i < num_threads; ++i) {
-        threads.emplace_back([&io_context]() {
-            io_context.run();
+        threads.emplace_back([&io_context, &duration]() {
+//            io_context.run();
+            io_context.run_for(duration);
         });
     }
 
-    std::jthread([]()
-                 {
-                     spdlog::default_logger()->set_pattern("[CLIENT] %+ [thread %t]");
-                     spdlog::info("Client starts work");
-                     MyClient client;
-                     if (client.connect()) {
-                         client.sendFile("assets/text1.txt");
-                     } else {
-                         spdlog::info("Client could not connect to a server");
-                     }
-                 });
 
+    std::thread fileThread([packetFlow, &duration]()
+    {
+        auto start = std::chrono::high_resolution_clock::now();
+        FileWriter<MyPacket<char>> fileWriter(packetFlow);
+        while(true) {
+//            auto now = std::chrono::high_resolution_clock::now();
+//            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start);
+//            // Check if the elapsed time is greater than or equal to the duration
+//            if (elapsed >= duration) {
+//                break;
+//            }
+            fileWriter.waitNextData();
+            fileWriter.processData();
+            fileWriter.notifyComplete();
+        }
+    });
+
+    std::jthread([]()
+    {
+        spdlog::default_logger()->set_pattern("[Hey] %+ [thread %t]");
+        spdlog::info("Client starts work");
+        MyClient client;
+        if (client.connect()) {
+            std::string file =
+                std::string(PATH_TO_ASSETS) + std::string("textClient1.txt");
+            client.sendFile(file);
+        } else {
+            spdlog::info("Client could not connect to a server");
+        }
+    });
+
+    std::jthread([]()
+    {
+        MyClient client;
+        if (client.connect()) {
+            std::string file =
+                std::string(PATH_TO_ASSETS) + std::string("textClient2.txt");
+            client.sendFile(file);
+        } else {
+            spdlog::info("Client could not connect to a server");
+        }
+    });
+
+    fileThread.join();
     for(auto& thrd : threads) {
         if(thrd.joinable()) {
             thrd.join();
         }
     }
-
 }
