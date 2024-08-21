@@ -1,9 +1,13 @@
-#include "gtest/gtest.h"
 #include "network_test.h"
 
-#include <iostream>
 #include <openssl/sha.h>
+
+#include <iostream>
 #include <sstream>
+
+#include "thread_safe_queue.h"
+
+#include "gtest/gtest.h"
 
 using namespace std;
 using namespace testing;
@@ -46,14 +50,14 @@ using namespace testing;
 
 #include "common.h"
 #include "packet.h"
-#include "server.h"
+//#include "server.h"
 
 using boost::asio::ip::tcp;
 
 using namespace std;
 
 
-
+//namespace SocketIO {
 class TestBase{
 public:
     TestBase() = default;
@@ -345,26 +349,39 @@ TEST(test_packet_rotator, test_allStages) {
 
 /*
  *
- * File TEST
- *
+ * Захрена
+ * продумай
  *
  */
+//template <typename Derived, typename T>
 template <typename Derived>
 class IStreamProcessor {
 public:
+//    IStreamProcessor(packetFlowSource, packetFlowDestination)
+
     void waitNextData() {
         (static_cast<Derived*>(this)->waitNextDataImpl());
+//        packet = packetFlowSource->get();
     }
     void processData() {
         (static_cast<Derived*>(this)->processDataImpl());
     }
     void notifyComplete() {
         (static_cast<Derived*>(this)->notifyCompleteImpl());
+//        packetFlowDestination->set(packet);
     }
+//    shared_ptr<PacketFlow<T>> packetFlowSource;
+//    shared_ptr<PacketFlow<T>> packetFlowDestination;
+//    unique_ptr<T> packet;
+    //
 };
 
 template <typename T = MyPacket<char>>
 class FileWriter: public IStreamProcessor<FileWriter<T>> {
+    FileWriter(const FileWriter&) = delete;
+    FileWriter(FileWriter&&) = delete;
+    FileWriter operator=(const FileWriter&) = delete;
+    FileWriter operator=(FileWriter&&) = delete;
 public:
     explicit FileWriter(std::shared_ptr<PacketFlow<T>> packetFlow)
         :packetFlow_(packetFlow) {
@@ -380,7 +397,6 @@ public:
         std::cout << "FileWriter void waitNextDataImpl() " << std::endl;
         while (!(packet_ = packetFlow_->getPacket(PacketFlow<T>::Stage::File))) {
             std::this_thread::yield();
-//            std::cout << "FileWriter waitNextData() queue File is empty" << std::endl;
             continue;
         }
         std::cout << "FileWriter waitNextData() got the packet" << std::endl;
@@ -389,11 +405,12 @@ public:
     void processDataImpl() {
         switch (packet_->header.type) {
             case (Header::Type::FileName): {
-                std::string fileName(packet_->data.data(), packet_->header.length);
-                if (fileName.find('/') != string::npos) {
-                    size_t lastSlashIndx = fileName.rfind('/');
-                    fileName = fileName.substr(lastSlashIndx + 1, fileName.size());
-                }
+                std::filesystem::path filePath(std::string(packet_->data.data(), packet_->header.length));
+                auto fileName = filePath.filename().string();
+//                if (fileName.find('/') != string::npos) {
+//                    size_t lastSlashIndx = fileName.rfind('/');
+//                    fileName = fileName.substr(lastSlashIndx + 1, fileName.size());
+//                }
 
                 if (isFileExist(fileName)) {
                     spdlog::debug("File with the name {} exists.", fileName);
@@ -541,8 +558,14 @@ TEST(test_file, test_writer) {
 using namespace boost::asio;
 using namespace boost::asio::ip;
 
+
+
 template<typename T = MyPacket<char>>
 class MyConnection: public IStreamProcessor<T>, public std::enable_shared_from_this<MyConnection<T>>{
+    MyConnection(const MyConnection&) = delete;
+    MyConnection(MyConnection&&) = delete;
+    MyConnection operator=(const MyConnection&) = delete;
+    MyConnection operator=(MyConnection&&) = delete;
 public:
     MyConnection(boost::asio::ip::tcp::socket socket, std::shared_ptr<PacketFlow<T>> packetFlow)
         :socket_(std::move(socket)),
@@ -556,7 +579,11 @@ public:
     }
 
     void run() {
-        waitNextDataImpl();
+
+        while (1)
+        {
+            waitNextDataImpl();
+        }
     }
 
     // wait for packet from PacketFlow
@@ -662,7 +689,33 @@ protected:
     std::unique_ptr<T> packet_;
 };
 
+template<typename T = MyPacket<char>>
+class ClientHandler {
+public:
+    ClientHandler(boost::asio::ip::tcp::socket socket) {
+        auto packetFlow = std::make_shared<PacketFlow<>>();
+        connection_ = make_unique<MyConnection<T>>(std::move(socket), packetFlow);
+    }
 
+    void run() {
+        std::jthread ([ptr = std::move(connection_)]()
+        {
+             ptr->run();
+        });
+
+        cout << "Start inf thread in ClientHandler" << endl;
+        while (true) {
+
+        }
+    }
+
+    ~ClientHandler() {
+        spdlog::info("~ClientHandler()");
+    }
+protected:
+    unique_ptr<MyConnection<T>> connection_;
+    std::vector<std::thread> threads_;
+};
 
 class MyServer {
 public:
@@ -681,24 +734,24 @@ protected:
     template <typename T = MyPacket<char>>
     void waitNewConnection_(std::shared_ptr<PacketFlow<T>> packetFlow) {
         acceptor_.async_accept([this, packetFlow] (boost::system::error_code errorCode, tcp::socket socket)
-        {
-            if (!errorCode) {
-                spdlog::info("New connection.");
-                cout << "PTR COUNTER in acceptor_.async_accept: " << packetFlow.use_count() << endl;
-                std::make_shared<MyConnection<T>>(std::move(socket), packetFlow)->run();
-            } else {
-                spdlog::error("New connection error: {}", errorCode.message());
-            }
-            // Prime the asio context with more work - again simply wait for
-            // another connection...
-            waitNewConnection_<T>(packetFlow);
-        });
+                               {
+                                   if (!errorCode) {
+                                       spdlog::info("New connection.");
+                                       cout << "PTR COUNTER in acceptor_.async_accept: " << packetFlow.use_count() << endl;
+                                       std::make_shared<MyConnection<T>>(std::move(socket), packetFlow)->run();
+                                   } else {
+                                       spdlog::error("New connection error: {}", errorCode.message());
+                                   }
+                                   // Prime the asio context with more work - again simply wait for
+                                   // another connection...
+                                   waitNewConnection_<T>(packetFlow);
+                               });
 
     }
     tcp::acceptor acceptor_;
 };
 
-namespace SocketIO {
+
     template <typename T>
     [[nodiscard]] static bool writeToSocket(ip::tcp::socket& socket, const MyPacket<T>& packet, boost::system::error_code& ec) {
         //send header
@@ -738,7 +791,7 @@ namespace SocketIO {
 
         return true;
     }
-}
+
 
 
 class MyClient {
@@ -778,11 +831,11 @@ public:
             packet.header.length = fileName.size();
             memcpy(packet.data.data(), fileName.c_str(), fileName.size());
 
-            if (!SocketIO::writeToSocket(socket_, packet, ec)) {
+            if (!writeToSocket(socket_, packet, ec)) {
                 return false;
             }
 
-            if (!SocketIO::readFromSocket(socket_, packet, ec))  {
+            if (!readFromSocket(socket_, packet, ec))  {
                 spdlog::error("Didn't get ack packet for FileData packet");
             }
         }
@@ -803,11 +856,11 @@ public:
                     break;
                 }
 
-                if (!SocketIO::writeToSocket(socket_, packet, ec)) {
+                if (!writeToSocket(socket_, packet, ec)) {
                     return false;
                 }
 
-                if (!SocketIO::readFromSocket(socket_, packet, ec))  {
+                if (!readFromSocket(socket_, packet, ec))  {
                     spdlog::error("Didn't get ack packet for FileData packet");
                 }
             } while (true);
@@ -818,11 +871,11 @@ public:
             packet.header.type = Header::Type::Exit;
             packet.header.length = 1;
 
-            if (!SocketIO::writeToSocket(socket_, packet, ec)) {
+            if (!writeToSocket(socket_, packet, ec)) {
                 return false;
             }
 
-            if (!SocketIO::readFromSocket(socket_, packet, ec)) {
+            if (!readFromSocket(socket_, packet, ec)) {
                 spdlog::error("Didn't get ack packet for Exit packet");
             }
 
@@ -850,14 +903,15 @@ TEST(test_connection, test_costructor) {
     std::vector<std::thread> threads;
     for(std::size_t i = 0; i < num_threads; ++i) {
         threads.emplace_back([&io_context, &duration]() {
-//            io_context.run();
-            io_context.run_for(duration);
+            io_context.run();
+//            io_context.run_for(duration);
         });
     }
 
 
     std::thread fileThread([packetFlow, &duration]()
     {
+                               //! передай функтор
         auto start = std::chrono::high_resolution_clock::now();
         FileWriter<MyPacket<char>> fileWriter(packetFlow);
         while(true) {
@@ -881,7 +935,9 @@ TEST(test_connection, test_costructor) {
         if (client.connect()) {
             std::string file =
                 std::string(PATH_TO_ASSETS) + std::string("textClient1.txt");
-            client.sendFile(file);
+//            client.sendFile(file);
+            this_thread::sleep_for(std::chrono::seconds(3));
+            spdlog::info("Client slept for 3 sec and finished");
         } else {
             spdlog::info("Client could not connect to a server");
         }
@@ -906,3 +962,59 @@ TEST(test_connection, test_costructor) {
         }
     }
 }
+
+//#include <crypto++/config.h>
+
+
+using namespace CryptoPP;
+
+class Encryptor: public IStreamProcessor<Encryptor> {
+    Encryptor(const Encryptor&) = delete;
+    Encryptor(Encryptor&&) = delete;
+    Encryptor operator=(const Encryptor&) = delete;
+    Encryptor operator=(Encryptor&&) = delete;
+public:
+    // wait for packet from PacketFlow
+    // will be used for a recursive call
+    void waitNextDataImpl() {
+
+    }
+
+    // read from socket to the gotten packet
+    // send ack
+    void processDataImpl() {
+        MyPacket<CryptoPP::byte> source;
+//
+        MyPacket<CryptoPP::byte> cipher;
+        CryptoPP::byte iv[CryptoPP::AES::BLOCKSIZE];
+        memset(iv, 0x00, CryptoPP::AES::BLOCKSIZE);
+
+        cipher.header.type = source.header.type;
+        cipher.header.length = source.header.length + CryptoPP::AES::BLOCKSIZE;
+
+        try {
+            CBC_Mode<CryptoPP::AES>::Encryption enc;
+//            enc.SetKeyWithIV((CryptoPP::byte*)_key.data(), _key.size(), iv, sizeof(iv));
+//            // Make room for padding
+//            ArraySink cs(&cipher.payload[0], source.header.length + CryptoPP::AES::BLOCKSIZE);
+//            // Why should we use new in ArraySource
+//            //    https://cryptopp.com/wiki/Pipelining#Ownership
+//            ArraySource(reinterpret_cast<const CryptoPP::byte*>(source.payload), source.header.length, true, new StreamTransformationFilter(enc, new Redirector(cs)));
+//            // Set cipher text length now that its known
+//            cipher.header.length = cs.TotalPutLength();
+        } catch (const CryptoPP::Exception& e) {
+            std::cerr << e.what() << std::endl;
+            exit(1);
+        }
+    }
+
+    // transfer filled packet to PacketFlow back
+    void notifyCompleteImpl() {
+
+    }
+
+protected:
+
+};
+
+//
