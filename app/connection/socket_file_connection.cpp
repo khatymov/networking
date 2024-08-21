@@ -9,20 +9,22 @@ using namespace std;
 using namespace boost::asio;
 using namespace boost::asio::ip;
 
+
 SocketFileConnection::SocketFileConnection(tcp::socket socket) : m_socket(std::move(socket)) {
     _ack_packet.header.type = Packet::Type::Ack;
     _ack_packet.header.length = 0;
 
-    if (!_cryptographer.setKey("myKey")) {
-        std::cerr << "Set a key for decryption" << std::endl;
-        exit(1);
-    }
-
+//    if (!_cryptographer.setKey("myKey")) {
+//        std::cerr << "Set a key for decryption" << std::endl;
+//        exit(1);
+//    }
 }
 
 void SocketFileConnection::run() {
     _readHeader();
 }
+
+//PacketRotator packetRotator;
 
 void SocketFileConnection::_readHeader() {
     //The server does not keep a copy of the shared-pointer, so when all async operations on the connection complete
@@ -30,17 +32,74 @@ void SocketFileConnection::_readHeader() {
     //BUT the object must not be destroyed when an async operation is in progress
     auto self(shared_from_this());
     // 20 packs
+//    CryptoPacket packet;
+
+
+//    CryptoPacket* packetPtr = nullptr;
+    //wait until packetPtr != nullptr
+//    while (!(packetPtr = packetRotator.getPacket(PacketRotator::Stage::NETWORK))) {
+//        std::this_thread::yield();
+//        continue;
+//    }
+
     // узкое место - сеть
-    async_read(m_socket, boost::asio::buffer(&_cryptoPacket.header, sizeof(_cryptoPacket.header)),
-               [this, self] (boost::system::error_code errorCode, std::size_t length) {
+//    async_read(socket_, boost::asio::buffer(packetPtr->header, sizeof(Packet::Header)),
+//               [&, this, self] (boost::system::error_code errorCode, std::size_t length) {
+//                   if (!errorCode) {
+//                       if (packetPtr->header.length > 0) {
+//                           _readPayload(packetPtr);
+//                       } else {
+//                           _writeHeader(_ack_packet);
+//                       }
+//                   } else {
+//                       spdlog::error("error header: {}", errorCode.message());
+//                       socket_.close();
+//                   }
+//               });
+}
+
+void SocketFileConnection::_readPayload(CryptoPacket* packet) {
+    auto self(shared_from_this());
+    async_read(m_socket, boost::asio::buffer(&packet->payload, packet->header.length),
+               [&packet, this, self] (boost::system::error_code errorCode, std::size_t length) {
                    if (!errorCode) {
-                       if (_cryptoPacket.header.length > 0) {
-                           _readPayload();
-                       } else {
-                           _writeHeader(_ack_packet);
+                       /*
+                        *
+                        * while (packet = PacketRotator::getPacket(Stage::read))
+                        *   std::yield();
+                        *
+                        * std::copy(packet, socket_packet);
+                        * PacketRotator::transferPacketTo(Stage::PacketManager);
+                        *
+                        */
+                       switch (packet->header.type) {
+                           case (Packet::Type::FileName): {
+                               spdlog::info("Packet::Type::FileName: {}", packet->header.length);
+                               break;
+                           };
+                           case (Packet::Type::FileData): {
+                               spdlog::info("Packet::Type::FileData: {}", packet->header.length);
+                               break;
+                           };
+                           case (Packet::Type::Hash): {
+                               spdlog::info("Packet::Type::Hash: {}", packet->header.length);
+                               break;
+                           };
+                           case (Packet::Type::Exit): {
+                               spdlog::info("Packet::Type::Exit");
+                               break;
+                           };
+                           default: {
+                               spdlog::error("Unknown packet");
+                               break;
+                           }
                        }
+
+//                       packetRotator.setPacket(PacketRotator::Stage::CRYPTO, packet);
+//                       _handlePacket();//gateway распределение мощности
+                       _writeHeader(_ack_packet);
                    } else {
-                       spdlog::error("error header: {}", errorCode.message());
+                       spdlog::error("error payload: {}", errorCode.message());
                        m_socket.close();
                    }
                });
@@ -51,6 +110,16 @@ void SocketFileConnection::_readPayload() {
     async_read(m_socket, boost::asio::buffer(&_cryptoPacket.payload, _cryptoPacket.header.length),
                [this, self] (boost::system::error_code errorCode, std::size_t length) {
                    if (!errorCode) {
+
+                       /*
+                        *
+                        * while (packet = PacketRotator::getPacket(Stage::read))
+                        *   std::yield();
+                        *
+                        * std::copy(packet, socket_packet);
+                        * PacketRotator::transferPacketTo(Stage::PacketManager);
+                        *
+                        */
                        _handlePacket();//gateway распределение мощности
                        _writeHeader(_ack_packet);
                    } else {
@@ -81,7 +150,7 @@ void SocketFileConnection::_writePayload(const Packet& packet) {
 }
 
 void SocketFileConnection::_handlePacket() {
-    _cryptographer.decrypt(_cryptoPacket, _packet);
+//    _cryptographer.decrypt(_cryptoPacket, _packet);
     // add functions for every case
     switch (_packet.header.type) {
         case (Packet::Type::FileName): {

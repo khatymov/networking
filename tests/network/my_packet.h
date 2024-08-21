@@ -9,8 +9,14 @@
 #include <cstdint>
 #include <cstdio>
 
-#include <cryptopp/base64.h>
+#include <cryptopp/aes.h>
 #include <cryptopp/osrng.h>
+//#include <cryptopp/base64.h>
+//#include <cryptopp/cryptlib.h>
+//#include <cryptopp/files.h>
+//#include <cryptopp/filters.h>
+//#include <cryptopp/hex.h>
+#include <cryptopp/modes.h>
 
 // should be at least 64 bytes, because of hash size
 #define PACKET_DATA_SIZE 65535

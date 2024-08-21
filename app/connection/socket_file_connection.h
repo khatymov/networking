@@ -34,6 +34,7 @@ protected:
     void _readHeader();
     //! \brief Read packet payloads using async reading from a client via socket
     void _readPayload();
+    void _readPayload(CryptoPacket* packet);
     //! \brief Write packet headers using async writing to a client via socket
     void _writeHeader(const Packet& packet);
     //! \brief Write packet payloads using async writing to a client via socket

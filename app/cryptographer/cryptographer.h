@@ -12,12 +12,12 @@
 
 #include <iostream>
 #include <cryptopp/aes.h>
+#include <cryptopp/osrng.h>
 #include <cryptopp/filters.h>
 #include <cryptopp/modes.h>
 #include <cryptopp/hex.h>
 #include <cryptopp/cryptlib.h>
 #include <cryptopp/base64.h>
-#include <cryptopp/osrng.h>
 #include <cryptopp/files.h>
 #include <string>
 
@@ -37,5 +37,5 @@ public:
     bool setKey(const std::string& envKeyName);
 
 private:
-    std::string _key;// = "5E462EA6BD40B083F5F2C4B810A07230";
+    std::string _key = "5E462EA6BD40B083F5F2C4B810A07230";
 };
