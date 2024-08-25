@@ -10,16 +10,18 @@
 #include "thread_safe_queue.h"
 
 namespace network {
-template <typename Derived, typename T = MyPacket<char>>
+template <typename Derived, typename T>
 class DataProcessor {
 public:
     // get current and next queue to get data from current queue, handle this data and give it to the next queue
     explicit DataProcessor(std::shared_ptr<ThreadSafeQueue<T>>& currentQueue,
-                            std::shared_ptr<ThreadSafeQueue<T>>& nextQueue);
+                            std::shared_ptr<ThreadSafeQueue<T>>& nextQueue)
+        :currentQueue_(currentQueue),
+         nextQueue_(nextQueue) {}
+
     // wait data from current queue
     void waitNextData();
     // do something with data from current queue
-    //TODO if any rename
     void processData();
     // give this data to the next queue
     void notifyComplete();
@@ -28,11 +30,34 @@ public:
 protected:
     std::shared_ptr<ThreadSafeQueue<T>> currentQueue_;
     std::shared_ptr<ThreadSafeQueue<T>> nextQueue_;
+    std::unique_ptr<T> data_;
+    // this flag is a sign that component is finished its work
+    // flag value should be changes in processData() in child class
+    bool isProcessDone_ = false;
 };
 
 template <typename Derived, typename T>
+void DataProcessor<Derived, T>::waitNextData() {
+    // while data
+    while (data_ = currentQueue_->get()) {
+        std::this_thread::yield();
+        continue;
+    }
+}
+
+template <typename Derived, typename T>
 void DataProcessor<Derived, T>::processData() {
-    static_cast<Derived*>(this)->processData();
+    static_cast<Derived*>(this)->processDataImpl();
+}
+
+template <typename Derived, typename T>
+void DataProcessor<Derived, T>::notifyComplete() {
+    nextQueue_->set(std::move(data_));
+}
+
+template <typename Derived, typename T>
+bool DataProcessor<Derived, T>::isDone() const {
+    return isProcessDone_;
 }
 
 } // namespace network
