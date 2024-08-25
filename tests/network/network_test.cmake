@@ -1,9 +1,6 @@
 include_directories( ${CMAKE_CURRENT_LIST_DIR} )
 
 set( NETWORK_TEST
-        ${CMAKE_CURRENT_LIST_DIR}/network_test.h
-        ${CMAKE_CURRENT_LIST_DIR}/network_test.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/network_modules_test.cpp
         ${CMAKE_CURRENT_LIST_DIR}/my_packet.h
         ${CMAKE_CURRENT_LIST_DIR}/thread_safe_queue.h
         ${CMAKE_CURRENT_LIST_DIR}/connection.h
@@ -17,4 +14,6 @@ set( NETWORK_TEST
         ${CMAKE_CURRENT_LIST_DIR}/consoleParams.h
         ${CMAKE_CURRENT_LIST_DIR}/thread_safe_queue_test.h
         ${CMAKE_CURRENT_LIST_DIR}/thread_safe_queue_test.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/connection_test.h
+        ${CMAKE_CURRENT_LIST_DIR}/connection_test.cpp
    )
