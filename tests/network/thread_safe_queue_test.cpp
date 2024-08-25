@@ -1,7 +1,3 @@
-//
-// Created by Renat_Khatymov on 8/25/2024.
-//
-
 #include "thread_safe_queue_test.h"
 
 #include <iostream>
@@ -66,7 +62,7 @@ TEST(test_thread_safe_queue, test_overflow_exception) {
     EXPECT_THROW(tsQueue->set(std::move(make_unique<int>(42))), std::runtime_error);
 }
 
-// add set(nullptr) - handle this case
+// TODO: add test for set(nullptr) - handle this case
 
 // Test in two threads
 // in the first thread we have primary queue
