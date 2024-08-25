@@ -1,7 +1,7 @@
 #include "network_test.h"
 
-#include <openssl/sha.h>
 
+//
 #include <iostream>
 #include <sstream>
 
@@ -43,14 +43,12 @@ using namespace testing;
  * }
  */
 
-#include <boost/asio.hpp>
-#include <filesystem>
-#include <fstream>
-#include <thread>
 
-#include "common.h"
+
+
+#include "pch.h"
 #include "packet.h"
-//#include "server.h"
+
 
 using boost::asio::ip::tcp;
 
@@ -558,134 +556,63 @@ TEST(test_file, test_writer) {
 using namespace boost::asio;
 using namespace boost::asio::ip;
 
+template <typename T>
+[[nodiscard]] static bool writeToSocket(ip::tcp::socket& socket, const MyPacket<T>& packet, boost::system::error_code& ec) {
+    //send header
+    auto sentHeaderSize = write(socket, boost::asio::buffer(&packet.header, sizeof(packet.header)), transfer_exactly(sizeof(packet.header)), ec);
+    if (ec)
+    {
+        spdlog::error("Send packet header error: {}", ec.message());
+        return false;
+    }
+    //send payload
+    if (packet.header.length > 0) {
+        auto sentPayloadSize = write(socket, boost::asio::buffer(&packet.data, packet.header.length), transfer_exactly(packet.header.length), ec);
+        if (ec) {
+            spdlog::error("Send packet payload error: {}", ec.message());
+            return false;
+        }
+    }
 
+    return true;
+}
+template <typename T>
+[[nodiscard]] static bool readFromSocket(ip::tcp::socket& socket, MyPacket<T>& packet, boost::system::error_code& ec) {
+    //read header
+    auto head_size = read(socket, buffer(&packet.header, sizeof(packet.header)), transfer_exactly(sizeof(packet.header)), ec);
+    if (ec)
+    {
+        spdlog::error("Read packet header error: {}", ec.message());
+        return false;
+    }
+    //read payload
+    auto payload_size = read(socket, boost::asio::buffer(&packet.data, packet.header.length), transfer_exactly(packet.header.length), ec);
+    if (ec)
+    {
+        spdlog::error("Read packet payload error: {}", ec.message());
+        return false;
+    }
+
+    return true;
+}
 
 template<typename T = MyPacket<char>>
-class MyConnection: public IStreamProcessor<T>, public std::enable_shared_from_this<MyConnection<T>>{
+class MyConnection: public IStreamProcessor<T>{
     MyConnection(const MyConnection&) = delete;
     MyConnection(MyConnection&&) = delete;
     MyConnection operator=(const MyConnection&) = delete;
     MyConnection operator=(MyConnection&&) = delete;
 public:
-    MyConnection(boost::asio::ip::tcp::socket socket, std::shared_ptr<PacketFlow<T>> packetFlow)
-        :socket_(std::move(socket)),
-         packetFlow_(packetFlow)
-    {
-        cout << "PTR COUNTER in MyConnection(): " << packetFlow_.use_count() << endl;
+    MyConnection(boost::asio::ip::tcp::socket socket)
+        :socket_(std::move(socket)) {
+        spdlog::info("Thread MyConnection()");
     }
 
     ~MyConnection() {
         cout << "~MyConnection(): " << endl;
     }
-
-    void run() {
-
-        while (1)
-        {
-            waitNextDataImpl();
-        }
-    }
-
-    // wait for packet from PacketFlow
-    // will be used for a recursive call
-    void waitNextDataImpl() {
-        spdlog::info("Connection waitNextDataImpl");
-        cout << "PTR COUNTER in waitNextDataImpl: " << packetFlow_.use_count() << endl;
-        while (!(packet_ = packetFlow_->getPacket(PacketFlow<T>::Stage::Socket))) {
-            std::this_thread::yield();
-//            std::cout << "waitNextData() queue Socket is empty" << std::endl;
-            continue;
-        }
-        processDataImpl();
-    }
-
-    // read from socket to the gotten packet
-    // send ack
-    void processDataImpl() {
-        spdlog::info("Connection processDataImpl()");
-        readHeader_();
-    }
-
-    // transfer filled packet to PacketFlow back
-    void notifyCompleteImpl() {
-        //TODO: fix stage to Crypto!!
-        spdlog::info("Connection notifyCompleteImpl()");
-        packetFlow_->setPacketForNextStage(PacketFlow<T>::Stage::File, std::move(packet_));
-        std::cout << "notifyComplete() Connection" << std::endl;
-        waitNextDataImpl();
-    }
-
 protected:
-
-    void readHeader_() {
-        auto self = this->shared_from_this();
-        boost::asio::async_read(socket_, boost::asio::buffer(&packet_->header, sizeof(packet_->header)),
-                                [this, self] (boost::system::error_code errorCode, std::size_t /*length*/)
-                                {
-                                    spdlog::info("Connection got header");
-                                    if (!errorCode) {
-                                        if (packet_->header.length > 0) {
-                                            spdlog::info("Connection read data. Data > 0 ");
-                                            readPayload_();
-                                        } else {
-                                            spdlog::info("Connection send Ack. Data = 0 ");
-                                            T packetAck;
-                                            packetAck.header.type = Header::Type::Ack;
-                                            writeHeader_(packetAck);
-                                        }
-                                    } else {
-                                        spdlog::error("Read header error: {}", errorCode.message());
-                                        socket_.close();
-                                    }
-                                });
-    }
-
-    void readPayload_() {
-        auto self = this->shared_from_this();
-        boost::asio::async_read(socket_, boost::asio::buffer(packet_->data, packet_->header.length),
-                                [this, self] (boost::system::error_code errorCode, std::size_t /*length*/)
-                                {
-                                    if (errorCode) {
-                                        spdlog::error("Read header error: {}", errorCode.message());
-                                        socket_.close();
-                                    } else {
-                                        std::string str(packet_->data.data(), packet_->header.length);
-                                        spdlog::info("Connection got data: {}", str);
-                                        T packetAck;
-                                        packetAck.header.type = Header::Type::Ack;
-                                        packetAck.header.length = 0;
-                                        writeHeader_(packetAck);
-                                    }
-                                });
-    }
-
-    void writeHeader_(const T& packet) {
-        auto self = this->shared_from_this();
-        boost::asio::async_write(socket_, boost::asio::buffer(&packet.header, sizeof(packet.header)),
-                                 [this, self, packet](boost::system::error_code errorCode, std::size_t /*length*/) {
-                                     if (!errorCode) {
-                                         writePayload_(packet);
-                                     } else {
-                                         spdlog::error("Send packet header error: {}", errorCode.message());
-                                         socket_.close();
-                                     }
-                                 });
-    }
-
-    void writePayload_(const T& packet) {
-        auto self = this->shared_from_this();
-        boost::asio::async_write(socket_, boost::asio::buffer(&packet.data, packet.header.length),
-                                 [this, self](boost::system::error_code errorCode, std::size_t /*length*/) {
-                                     if (errorCode) {
-                                         spdlog::error("Send packet payload error: {}", errorCode.message());
-                                         socket_.close();
-                                     }
-                                     notifyCompleteImpl();
-                                 });
-    }
-
     boost::asio::ip::tcp::socket socket_;
-    std::shared_ptr<PacketFlow<T>> packetFlow_;
     std::unique_ptr<T> packet_;
 };
 
@@ -693,20 +620,32 @@ template<typename T = MyPacket<char>>
 class ClientHandler {
 public:
     ClientHandler(boost::asio::ip::tcp::socket socket) {
-        auto packetFlow = std::make_shared<PacketFlow<>>();
-        connection_ = make_unique<MyConnection<T>>(std::move(socket), packetFlow);
     }
 
-    void run() {
-        std::jthread ([ptr = std::move(connection_)]()
-        {
-             ptr->run();
+    void handle() {
+        std::thread threadA([&]() {
+            spdlog::info("Thread B in ClientHandler()");
+            this_thread::sleep_for(std::chrono::seconds(4));
+            spdlog::info("Thread B in ClientHandler()");
         });
 
-        cout << "Start inf thread in ClientHandler" << endl;
-        while (true) {
+        std::thread threadB([&]() {
+            spdlog::info("Thread B in ClientHandler()");
+            this_thread::sleep_for(std::chrono::seconds(4));
+            spdlog::info("Thread B in ClientHandler()");
+        });
 
-        }
+        std::thread threadC([&]() {
+            spdlog::info("Thread B in ClientHandler()");
+            this_thread::sleep_for(std::chrono::seconds(4));
+            spdlog::info("Thread B in ClientHandler()");
+        });
+
+        spdlog::info("joins in ClientHandler()");
+        threadA.join();
+        threadB.join();
+        threadC.join();
+        cout << "Start inf thread in ClientHandler" << endl;
     }
 
     ~ClientHandler() {
@@ -714,83 +653,63 @@ public:
     }
 protected:
     unique_ptr<MyConnection<T>> connection_;
-    std::vector<std::thread> threads_;
 };
 
 class MyServer {
 public:
-    MyServer(boost::asio::io_context& io_context, const std::string& ip = "127.0.0.1", const uint port = 1234)
-        : acceptor_(io_context, ip::tcp::endpoint(boost::asio::ip::make_address(ip), port)) {
+    MyServer(const std::string& ip = "127.0.0.1", const uint port = 1234)
+        :
+          acceptor_(io_context_, ip::tcp::endpoint(boost::asio::ip::make_address(ip), port)) {
         spdlog::info("Server started with ip and port: [{}:{}]", ip, port);
     }
 
-    template <typename T = MyPacket<char>>
-    void run(std::shared_ptr<PacketFlow<T>> packetFlow) {
-        cout << "PTR COUNTER in run(): " << packetFlow.use_count() << endl;
-        waitNewConnection_<T>(packetFlow);
+    void run() {
+        while (true) {
+            tcp::socket socket(io_context_);
+            spdlog::info("Waiting for a connection...");
+
+            // Synchronously accept a new connection
+            acceptor_.accept(socket);
+            spdlog::info("Connection accepted from: ");
+
+            // Create a new thread for each connection
+            std::thread client_thread([&socket]() {
+                ClientHandler clientHandler(std::move(socket));
+                clientHandler.handle();
+            });
+
+            // Detach the thread so it can run independently
+            client_thread.detach();
+        }
     }
 
 protected:
     template <typename T = MyPacket<char>>
     void waitNewConnection_(std::shared_ptr<PacketFlow<T>> packetFlow) {
-        acceptor_.async_accept([this, packetFlow] (boost::system::error_code errorCode, tcp::socket socket)
-                               {
-                                   if (!errorCode) {
-                                       spdlog::info("New connection.");
-                                       cout << "PTR COUNTER in acceptor_.async_accept: " << packetFlow.use_count() << endl;
-                                       std::make_shared<MyConnection<T>>(std::move(socket), packetFlow)->run();
-                                   } else {
-                                       spdlog::error("New connection error: {}", errorCode.message());
-                                   }
-                                   // Prime the asio context with more work - again simply wait for
-                                   // another connection...
-                                   waitNewConnection_<T>(packetFlow);
-                               });
 
+//        acceptor_.accept();
     }
+//        acceptor_.aaccept([this, packetFlow] (boost::system::error_code errorCode, tcp::socket socket)
+//                               {
+//                                   if (!errorCode) {
+//                                       spdlog::info("New connection.");
+//                                       cout << "PTR COUNTER in acceptor_.async_accept: " << packetFlow.use_count() << endl;
+//                                       std::make_shared<MyConnection<T>>(std::move(socket), packetFlow)->run();
+//                                   } else {
+//                                       spdlog::error("New connection error: {}", errorCode.message());
+//                                   }
+//                                   // Prime the asio context with more work - again simply wait for
+//                                   // another connection...
+//                                   waitNewConnection_<T>(packetFlow);
+//                               });
+//
+//    }
+    boost::asio::io_context io_context_;
     tcp::acceptor acceptor_;
 };
 
 
-    template <typename T>
-    [[nodiscard]] static bool writeToSocket(ip::tcp::socket& socket, const MyPacket<T>& packet, boost::system::error_code& ec) {
-        //send header
-        auto sentHeaderSize = write(socket, boost::asio::buffer(&packet.header, sizeof(packet.header)), transfer_exactly(sizeof(packet.header)), ec);
-        if (ec)
-        {
-            spdlog::error("Send packet header error: {}", ec.message());
-            return false;
-        }
-        //send payload
-        if (packet.header.length > 0) {
-            auto sentPayloadSize = write(socket, boost::asio::buffer(&packet.data, packet.header.length), transfer_exactly(packet.header.length), ec);
-            if (ec) {
-                spdlog::error("Send packet payload error: {}", ec.message());
-                return false;
-            }
-        }
 
-        return true;
-    }
-    template <typename T>
-    [[nodiscard]] static bool readFromSocket(ip::tcp::socket& socket, MyPacket<T>& packet, boost::system::error_code& ec) {
-        //read header
-        auto head_size = read(socket, buffer(&packet.header, sizeof(packet.header)), transfer_exactly(sizeof(packet.header)), ec);
-        if (ec)
-        {
-            spdlog::error("Read packet header error: {}", ec.message());
-            return false;
-        }
-        //read payload
-        auto payload_size = read(socket, boost::asio::buffer(&packet.data, packet.header.length), transfer_exactly(packet.header.length), ec);
-        if (ec)
-        {
-            spdlog::error("Read packet payload error: {}", ec.message());
-            return false;
-        }
-
-        return true;
-    }
 
 
 
@@ -892,42 +811,17 @@ public:
 };
 
 TEST(test_connection, test_costructor) {
-    std::chrono::seconds duration(2);
-    auto packetFlow = std::make_shared<PacketFlow<>>();
-    boost::asio::io_context io_context;
-    MyServer myServer(io_context);
-    myServer.run(packetFlow);
-
-    // Number of threads you want to run io_context in.
-    const std::size_t num_threads = 1;// std::thread::hardware_concurrency();
-    std::vector<std::thread> threads;
-    for(std::size_t i = 0; i < num_threads; ++i) {
-        threads.emplace_back([&io_context, &duration]() {
-            io_context.run();
-//            io_context.run_for(duration);
-        });
-    }
 
 
-    std::thread fileThread([packetFlow, &duration]()
+    std::thread threadServer([]()
     {
-                               //! передай функтор
-        auto start = std::chrono::high_resolution_clock::now();
-        FileWriter<MyPacket<char>> fileWriter(packetFlow);
-        while(true) {
-//            auto now = std::chrono::high_resolution_clock::now();
-//            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start);
-//            // Check if the elapsed time is greater than or equal to the duration
-//            if (elapsed >= duration) {
-//                break;
-//            }
-            fileWriter.waitNextData();
-            fileWriter.processData();
-            fileWriter.notifyComplete();
-        }
+        spdlog::default_logger()->set_pattern("[Hey] %+ [thread %t]");
+        spdlog::info("Server starts work");
+        MyServer myServer;
+        myServer.run();
     });
 
-    std::jthread([]()
+    std::thread threadCl1([]()
     {
         spdlog::default_logger()->set_pattern("[Hey] %+ [thread %t]");
         spdlog::info("Client starts work");
@@ -936,85 +830,48 @@ TEST(test_connection, test_costructor) {
             std::string file =
                 std::string(PATH_TO_ASSETS) + std::string("textClient1.txt");
 //            client.sendFile(file);
-            this_thread::sleep_for(std::chrono::seconds(3));
-            spdlog::info("Client slept for 3 sec and finished");
+            spdlog::info("Client1 start sleeping for 10 sec");
+            this_thread::sleep_for(std::chrono::seconds(10));
+            spdlog::info("Client1 slept for 10 sec and finished");
         } else {
-            spdlog::info("Client could not connect to a server");
+            spdlog::info("Client1 could not connect to a server");
         }
     });
+//    std::jthread([]()
+//                 {
+//                     spdlog::default_logger()->set_pattern("[Hey] %+ [thread %t]");
+//                     spdlog::info("Client starts work");
+//                     MyClient client;
+//                     if (client.connect()) {
+//                         std::string file =
+//                             std::string(PATH_TO_ASSETS) + std::string("textClient1.txt");
+//                         //            client.sendFile(file);
+//                         spdlog::info("Client2 start sleeping for 10 sec");
+//                         this_thread::sleep_for(std::chrono::seconds(10));
+//                         spdlog::info("Client2 slept for 10 sec and finished");
+//                     } else {
+//                         spdlog::info("Client2 could not connect to a server");
+//                     }
+//                 });
 
-    std::jthread([]()
-    {
-        MyClient client;
-        if (client.connect()) {
-            std::string file =
-                std::string(PATH_TO_ASSETS) + std::string("textClient2.txt");
-            client.sendFile(file);
-        } else {
-            spdlog::info("Client could not connect to a server");
-        }
-    });
+    threadCl1.join();
+    threadServer.join();
+//    std::jthread([]()
+//    {
+//        MyClient client;
+//        if (client.connect()) {
+//            std::string file =
+//                std::string(PATH_TO_ASSETS) + std::string("textClient2.txt");
+//            client.sendFile(file);
+//        } else {
+//            spdlog::info("Client could not connect to a server");
+//        }
+//    });
 
-    fileThread.join();
-    for(auto& thrd : threads) {
-        if(thrd.joinable()) {
-            thrd.join();
-        }
-    }
+//    fileThread.join();
+//    for(auto& thrd : threads) {
+//        if(thrd.joinable()) {
+//            thrd.join();
+//        }
+//    }
 }
-
-//#include <crypto++/config.h>
-
-
-using namespace CryptoPP;
-
-class Encryptor: public IStreamProcessor<Encryptor> {
-    Encryptor(const Encryptor&) = delete;
-    Encryptor(Encryptor&&) = delete;
-    Encryptor operator=(const Encryptor&) = delete;
-    Encryptor operator=(Encryptor&&) = delete;
-public:
-    // wait for packet from PacketFlow
-    // will be used for a recursive call
-    void waitNextDataImpl() {
-
-    }
-
-    // read from socket to the gotten packet
-    // send ack
-    void processDataImpl() {
-        MyPacket<CryptoPP::byte> source;
-//
-        MyPacket<CryptoPP::byte> cipher;
-        CryptoPP::byte iv[CryptoPP::AES::BLOCKSIZE];
-        memset(iv, 0x00, CryptoPP::AES::BLOCKSIZE);
-
-        cipher.header.type = source.header.type;
-        cipher.header.length = source.header.length + CryptoPP::AES::BLOCKSIZE;
-
-        try {
-            CBC_Mode<CryptoPP::AES>::Encryption enc;
-//            enc.SetKeyWithIV((CryptoPP::byte*)_key.data(), _key.size(), iv, sizeof(iv));
-//            // Make room for padding
-//            ArraySink cs(&cipher.payload[0], source.header.length + CryptoPP::AES::BLOCKSIZE);
-//            // Why should we use new in ArraySource
-//            //    https://cryptopp.com/wiki/Pipelining#Ownership
-//            ArraySource(reinterpret_cast<const CryptoPP::byte*>(source.payload), source.header.length, true, new StreamTransformationFilter(enc, new Redirector(cs)));
-//            // Set cipher text length now that its known
-//            cipher.header.length = cs.TotalPutLength();
-        } catch (const CryptoPP::Exception& e) {
-            std::cerr << e.what() << std::endl;
-            exit(1);
-        }
-    }
-
-    // transfer filled packet to PacketFlow back
-    void notifyCompleteImpl() {
-
-    }
-
-protected:
-
-};
-
-//
