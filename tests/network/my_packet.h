@@ -5,18 +5,7 @@
 #ifndef NETWORKING_MY_PACKET_H
 #define NETWORKING_MY_PACKET_H
 
-#include <array>
-#include <cstdint>
-#include <cstdio>
-
-#include <cryptopp/aes.h>
-#include <cryptopp/osrng.h>
-//#include <cryptopp/base64.h>
-//#include <cryptopp/cryptlib.h>
-//#include <cryptopp/files.h>
-//#include <cryptopp/filters.h>
-//#include <cryptopp/hex.h>
-#include <cryptopp/modes.h>
+#include "pch.h"
 
 // should be at least 64 bytes, because of hash size
 #define PACKET_DATA_SIZE 65535
