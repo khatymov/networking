@@ -10,9 +10,11 @@
 // should be at least 64 bytes, because of hash size
 #define PACKET_DATA_SIZE 65535
 
+namespace network {
 struct Header {
     enum class Type : uint32_t {
         Ack,      // Confirm that packet received
+        Nack,      // Notify that packet didn't receive
         FileName, // name of a transferred file
         FileData, // File data
         CryptoData, // Encrypted data
@@ -39,5 +41,5 @@ struct MyPacket<CryptoPP::byte> {
     std::array<CryptoPP::byte, packetDataSize> data;
 };
 
-
+} // namespace network
 #endif  // NETWORKING_MY_PACKET_H
