@@ -39,6 +39,7 @@ public:
                        std::unique_ptr<DataType>& data,
                        boost::system::error_code& ec)> handler;
 
+    // to be created once and reuse it
     static constexpr DataType ackPacket{{Header::Type::Ack}};
     static constexpr DataType nackPacket{{Header::Type::Nack}};
     std::unique_ptr<DataType> ackPackPtr;
@@ -104,19 +105,38 @@ void Connection<DataType>::processDataImpl() {
         handler(socket_, data_, errorCode);
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
-    }
-    // try catch
-    // connectionHandler()
-    // clientHandler [socket, packet] (){
-    // create err
-    // write/read(socket, packet, error)};
+    } // add some others
 }
 
 // TODO read write should work with any type: complex structures, stl containers or boost buffer
 template <typename DataType>
 bool Connection<DataType>::write(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& packet, boost::system::error_code& ec) {
+    // TODO: fix
+    auto* raw_header_ptr = reinterpret_cast<char*>(&packet->header);
+    //send header
+    auto sentHeaderSize = boost::asio::write(socket,
+                                             boost::asio::buffer(raw_header_ptr, sizeof(packet->header)),
+                                             boost::asio::transfer_exactly(sizeof(packet->header)),
+                                             ec);
+    if (ec)
+    {
+        spdlog::error("Send packet header error: {}", ec.message());
+        return false;
+    }
 
-    return false;
+    //send payload
+    if (packet->header.length > 0) {
+        auto sentPayloadSize = boost::asio::write(socket,
+                                                  boost::asio::buffer(packet->data, packet->header.length),
+                                                  boost::asio::transfer_exactly(packet->header.length),
+                                                  ec);
+        if (ec) {
+            spdlog::error("Send packet payload error: {}", ec.message());
+            return false;
+        }
+    }
+
+    return true;
 }
 
 // TODO set timeout
@@ -130,7 +150,6 @@ bool Connection<DataType>::read(boost::asio::ip::tcp::socket& socket, std::uniqu
                                         boost::asio::transfer_exactly(sizeof(packet->header)),
                                         ec);
 
-//    packet->header.length = raw_header_ptr->header.length;
     if (ec) {
         spdlog::error("Read header error: {}", ec.message());
         return false;
