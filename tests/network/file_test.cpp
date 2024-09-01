@@ -92,7 +92,7 @@ TEST(FileWriterTest, test_cryptoProcess) {
     FileWriterMock<CryptoPacket> fileWriter(tsQueue[0], tsQueue[1]);
     for (const auto curPack: packets) {
         fileWriter.setData(make_unique<CryptoPacket>(curPack));
-        fileWriter.processData();
+        EXPECT_NO_THROW(fileWriter.processData());
         if (curPack.header.type == Header::Type::FileName) {
             auto expectedFile(string(curPack.data.begin(), curPack.data.begin() + curPack.header.length));
             EXPECT_TRUE(std::filesystem::exists(expectedFile));
@@ -105,6 +105,18 @@ TEST(FileWriterTest, test_cryptoProcess) {
     auto fileData = readFileIntoString(fileName);
     auto expectedData(string(packets[1].data.begin(), packets[1].data.begin() + packets[1].header.length));
     EXPECT_EQ(fileData, expectedData);
+}
+
+TEST(FileWriterTest, test_cryptoFileExists) {
+    //Prepare env
+    std::system("touch tmp.txt");
+
+    auto tsQueue = get2Queue();
+    FileWriterMock<CryptoPacket> fileWriter(tsQueue[0], tsQueue[1]);
+    for (const auto curPack: packets) {
+        fileWriter.setData(make_unique<CryptoPacket>(curPack));
+        EXPECT_NO_THROW(fileWriter.processData());
+    }
 }
 
 // test plan for file reader
