@@ -85,36 +85,27 @@ using namespace boost::asio::ip;
 //    MyPacket<char> packet;
 //    std::vector<std::shared_ptr<ThreadSafeQueue<MyPacket<char>>>> tsQueues;
 //};
+namespace {
 
-std::vector<std::shared_ptr<ThreadSafeQueue<MyPacket<char>>>> getQueue() {
-    return {std::make_shared<ThreadSafeQueue<MyPacket<char>>>(true),
-             std::make_shared<ThreadSafeQueue<MyPacket<char>>>(false)};
+std::vector<std::shared_ptr<ThreadSafeQueue<MyPacket<char>>>> get2Queue() {
+    return {std::make_shared<ThreadSafeQueue<MyPacket<char>>>(true), std::make_shared<ThreadSafeQueue<MyPacket<char>>>(false)};
 }
 
-// TODO make these tests - fixture tests
 TEST(ConnectionTest, test_ctr) {
-    auto tsQueues = getQueue();
-
-    EXPECT_NO_THROW([&tsQueues]() {
-        boost::asio::io_context io_context_;
-        tcp::socket someSocket(io_context_);
-        Connection<MyPacket<char>> connection(Mode::Server, std::move(someSocket), tsQueues[0], tsQueues[1]);
-    });
+    auto tsQueues = get2Queue();
+    boost::asio::io_context io_context_;
+    tcp::socket someSocket(io_context_);
+    EXPECT_NO_THROW(Connection<MyPacket<char>> connection(Mode::Server, std::move(someSocket), tsQueues[0], tsQueues[1]));
 }
 
 // TODO
-TEST(ConnectionTest, test_waitNextData) {
-
-}
+TEST(ConnectionTest, test_waitNextData) {}
 
 // TODO
-TEST(ConnectionTest, test_notifyComplete) {
-
-}
+TEST(ConnectionTest, test_notifyComplete) {}
 
 constexpr std::string ipDefualt("127.0.0.1");
-constexpr uint portDefualt= 1234;
-
+constexpr uint portDefualt = 1234;
 
 std::unique_ptr<MyPacket<char>> getPacketWithFileData() {
     std::unique_ptr<MyPacket<char>> packetWithFileData = std::make_unique<MyPacket<char>>();
@@ -127,32 +118,26 @@ std::unique_ptr<MyPacket<char>> getPacketWithFileData() {
 }
 
 template <typename T>
-class ConnectionMock: public Connection<T> {
+class ConnectionMock : public Connection<T> {
 public:
-    ConnectionMock(const Mode mode,
-                   boost::asio::ip::tcp::socket socket,
-                   std::shared_ptr<ThreadSafeQueue<T>> currentQueue,
+    ConnectionMock(const Mode mode, boost::asio::ip::tcp::socket socket, std::shared_ptr<ThreadSafeQueue<T>> currentQueue,
                    std::shared_ptr<ThreadSafeQueue<T>> nextQueue)
-        :Connection<T>(mode, std::move(socket), currentQueue, nextQueue) {};
+        : Connection<T>(mode, std::move(socket), currentQueue, nextQueue){};
 
-    void setData(std::unique_ptr<T>&& data) {
-        this->data_ = std::move(data);
-    }
+    void setData(std::unique_ptr<T>&& data) { this->data_ = std::move(data); }
 
-    std::unique_ptr<T> getData() {
-        return std::move(this->data_);
-    }
+    std::unique_ptr<T> getData() { return std::move(this->data_); }
 };
 
 struct DummyServer {
     DummyServer(const std::string& ip = ipDefualt, const uint port = portDefualt)
-        :acceptor_(io_context_, ip::tcp::endpoint(boost::asio::ip::make_address(ip), port)) {}
+        : acceptor_(io_context_, ip::tcp::endpoint(boost::asio::ip::make_address(ip), port)) {}
 
     void start() {
         tcp::socket socket(io_context_);
         acceptor_.accept(socket);
         // won't be used
-        auto tsQueues = getQueue();
+        auto tsQueues = get2Queue();
         ConnectionMock<MyPacket<char>> connectionMock(Mode::Server, std::move(socket), tsQueues[0], tsQueues[1]);
         // allocate memory for packet
         connectionMock.setData(std::move(make_unique<MyPacket<char>>()));
@@ -165,13 +150,6 @@ struct DummyServer {
         EXPECT_EQ(resPacket->header.type, expectedPacket->header.type);
         EXPECT_EQ(resPacket->header.length, expectedPacket->header.length);
         EXPECT_EQ(resPacket->data[0], expectedPacket->data[0]);
-        //con.proc
-            //read data- packetFiledata len = 1 payload 'a'
-            //write ack
-        // getData
-        // Exptect(data not null)
-        // data type = fildata
-        // data len = 1
     }
 
     boost::asio::io_context io_context_;
@@ -219,18 +197,19 @@ public:
 };
 
 TEST(ConnectionTest, test_processDataImplServer) {
-    std::thread serverThread([](){
+    std::thread serverThread([]() {
         DummyServer dummyServer;
         dummyServer.start();
     });
 
-    //server should start first
+    // server should start first
     this_thread::sleep_for(std::chrono::milliseconds(10));
-    std::thread clientThread([](){
+    std::thread clientThread([]() {
         DummyClient dummyClient;
         dummyClient.start();
     });
 
     serverThread.join();
     clientThread.join();
+}
 }
