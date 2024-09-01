@@ -43,9 +43,11 @@ TEST(FileWriterTest, test_ctr) {
 // 1. file creation:
 //      a) file doesn't exist
 //      b) file exists
-// 2. file writing: compare file contents and what dummy packet has
-// 3. calculating hash
-
+// 2. file writing: a. compare file contents and what dummy packet has
+//                  b. try to write if file didn't open
+// 3. calculating hash: a. compare with pre-defined has (use linux tool)
+//                      b.empty file
+// 4. exit
 
 TEST(FileWriterTest, test_process) {
 
