@@ -17,7 +17,6 @@ struct Header {
         Nack,      // Notify that packet didn't receive
         FileName, // name of a transferred file
         FileData, // File data
-        CryptoData, // Encrypted data
         Hash,     // Hash of a file to compare server and files hash
         Exit      // Notify - we are done
     };
