@@ -3,8 +3,6 @@ project(network_lib)
 # Source files
 set(SOURCE_FILES
     hash_calculator.cpp
-    server.cpp
-    session.cpp
     client_handler.cpp
 )
 
