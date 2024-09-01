@@ -41,10 +41,11 @@ FileWriter<DataType>::FileWriter(std::shared_ptr<ThreadSafeQueue<DataType>> curQ
 
 template <typename DataType>
 FileWriter<DataType>::~FileWriter() {
-    if (file_ != nullptr) {
-        std::fclose(file_);
-        file_ = nullptr;
-    }
+    //TODO fix
+//    if (file_ != nullptr) {
+//        std::fclose(file_);
+//        file_ = nullptr;
+//    }
 }
 
 template <typename DataType>
