@@ -24,6 +24,8 @@ struct Header {
 
     Type type;
     size_t length = 0;
+
+    auto operator<=>(const Header& header) const = default;
 };
 
 
