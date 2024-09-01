@@ -43,5 +43,8 @@ struct MyPacket<CryptoPP::byte> {
     std::array<CryptoPP::byte, packetDataSize> data;
 };
 
+using CryptoPacket = MyPacket<CryptoPP::byte>;
+using Packet = MyPacket<char>;
+
 } // namespace network
 #endif  // NETWORKING_MY_PACKET_H

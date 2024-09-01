@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <iostream>
 #include <cstdint>
 #include <cstdio>
 #include <filesystem>
@@ -8,6 +9,7 @@
 #include <thread>
 #include <memory>
 #include <queue>
+#include <string>
 #include <cryptopp/aes.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/modes.h>

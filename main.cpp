@@ -4,16 +4,16 @@
 
 #include <iostream>
 #include <span>
-//#include <boost/asio.hpp>
-//
-//#include "common.h"
-//#include "server.h"
-//#include "client.h"
-//#include "timer.h"
-//#include "cryptographer.h"
+
 #include "pch.h"
 
+#include "consoleParams.h"
+
+#include "client_handler.h"
+#include "server.h"
+
 using namespace std;
+using namespace network;
 
 int main(int argc, char* argv[]) {
 
@@ -25,51 +25,28 @@ int main(int argc, char* argv[]) {
         cout << "If server:  ./networking 127.0.0.1 1234\n";
         cout << "If client:  ./networking 127.0.0.1 1234 /path/to/file\n";
     }
+    // arg1 = ip | arg2 = port number
+    ConsoleParams consoleParams(args[1], args[2]);
 
-    const string_view ip{args[1]};
-    const string_view port_str{args[2]};
+    // only client has file as a parameter
+    if (args.size() == 4) {
+        consoleParams.targetFile = args[3];
+    }
 
-//    if (argc == 3) {
-//
-//        spdlog::default_logger()->set_pattern("[SERVER] %+ [thread %t]");
-//        spdlog::info("Server starts work");
-//
-//        boost::asio::io_context io_context;
-//
-//        // create a server object and starts waiting for a new client
-//        Server server(io_context, ip.data(), uint(std::stoul(port_str.data(), nullptr, 0)));
-//
-//        // Number of threads you want to run io_context in.
-//        const std::size_t num_threads = 2;// std::thread::hardware_concurrency();
-//
-//        std::vector<std::thread> threads;
-//        for(std::size_t i = 0; i < num_threads; ++i) {
-//            threads.emplace_back([&io_context]() {
-//                io_context.run();
-//            });
-//        }
-//
-//        for(auto& thrd : threads) {
-//            if(thrd.joinable()) {
-//                thrd.join();
-//            }
-//        }
-//
-//    } else if (argc == 4) {
-//        spdlog::default_logger()->set_pattern("[CLIENT] %+ [thread %t]");
-//        spdlog::info("Client starts work");
-//
-//        const string_view filePath{args[3]};
-//        Client client(ip.data(), uint(std::stoul(port_str.data(),nullptr,0)));
-//
-//        if (client.connect()) {
-//            Timer t;
-//            return client.sendFile(filePath.data());
-//        } else {
-//            spdlog::info("Client could not connect to a server");
-//            return EXIT_FAILURE;
-//        }
-//    }
+    try {
+        if (consoleParams.isClient()) {
+            ClientHandler clientHandler(consoleParams);
+            clientHandler.handle();
+        } else {
+            Server server(consoleParams);
+            server.handleConnections();
+        }
+    } catch (const std::runtime_error& error) {
+        cerr << "Runtime error in main: " << error.what() << endl;
+    } catch (const std::exception& error) {
+        cerr << "Exception in main: " << error.what() << endl;
+    }
+
 
     return 0;
 }

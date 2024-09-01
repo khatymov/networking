@@ -16,6 +16,12 @@ struct ConsoleParams{
     bool isClient() const {
         return !targetFile.empty();
     }
+
+    ConsoleParams() = default;
+
+    ConsoleParams(std::string_view ip, std::string_view port, std::string_view targetFile = {})
+        :ip(ip), port(std::stoul(std::string(port))), targetFile(targetFile) {}
+
 };
 
 }

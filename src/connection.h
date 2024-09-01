@@ -9,6 +9,7 @@
 
 #include "defs.h"
 #include "data_processor_interface.h"
+#include "my_packet.h"
 
 namespace network {
 // main goal for this class is to get/send packet from/to client
@@ -39,6 +40,7 @@ public:
                        boost::system::error_code& ec)> handler;
 
     // to be created once and reuse it
+    // TODO move somewhere else
     static constexpr DataType ackPacket{{Header::Type::Ack}};
     static constexpr DataType nackPacket{{Header::Type::Nack}};
     std::unique_ptr<DataType> ackPackPtr;
