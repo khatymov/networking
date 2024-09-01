@@ -5,9 +5,9 @@
 #ifndef NETWORKING_ENCRYPTOR_H
 #define NETWORKING_ENCRYPTOR_H
 
-#include "pch.h"
-
 #include "data_processor_interface.h"
+#include "my_packet.h"
+#include "pch.h"
 
 namespace network {
 
@@ -71,6 +71,10 @@ void Encryptor<DataType>::processDataImpl() {
     // need to change cipherData_ with data_ because DataProcessor::notifyComplete()
     // uses data_ field
     std::swap(this->data_, cipherData_);
+
+    if (this->data_->header.type == Header::Type::Exit) {
+        this->isProcessDone_ = true;
+    }
 }
 
 template <typename DataType>
@@ -79,12 +83,16 @@ void Encryptor<DataType>::setKey() {
     if (envKey) {
         key_.Assign(reinterpret_cast<const CryptoPP::byte*>(envKey),
                     strlen(envKey));
+#ifdef DEBUG
         spdlog::info("Key for encryption is taken from environment variables");
+#endif
     } else {
         std::string hardCodedKey("5E462EA6BD40B083F5F2C4B810A07230");
         key_.Assign(reinterpret_cast<const CryptoPP::byte*>(hardCodedKey.data()),
                     hardCodedKey.size());
-        spdlog::info("Use hardcoded key");
+#ifdef DEBUG
+        spdlog::info("Use hardcoded key in Encryptor");
+#endif
     }
 }
 
