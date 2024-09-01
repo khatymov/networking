@@ -44,7 +44,9 @@ void DataProcessor<Derived, T>::waitNextData() {
         continue;
     }
 
-    assert(data_ != nullptr);
+    if (data_ == nullptr) {
+        throw std::logic_error("Data ptr can't be null");
+    }
 }
 
 template <typename Derived, typename T>
