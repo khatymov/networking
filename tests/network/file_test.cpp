@@ -27,11 +27,6 @@ std::vector<std::shared_ptr<ThreadSafeQueue<CryptoPacket>>> get2Queue() {
             std::make_shared<ThreadSafeQueue<CryptoPacket>>(false)};
 }
 
-TEST(FileReaderTest, test_ctr) {
-    auto tsQueues = get2Queue();
-//    EXPECT_NO_THROW();
-}
-
 TEST(FileWriterTest, test_ctr) {
     auto tsQueues = get2Queue();
     EXPECT_NO_THROW(FileWriter<CryptoPacket> fileWriter(tsQueues[0], tsQueues[1]));
@@ -49,8 +44,30 @@ TEST(FileWriterTest, test_ctr) {
 //                      b.empty file
 // 4. exit
 
-TEST(FileWriterTest, test_process) {
+// delete file
+void prepareEnv() {
+    std::system("[[ -f tmp.txt ]] && rm tmp.txt");
+}
 
+std::vector<CryptoPacket> getAllPacket{{Header::Type::FileName, 7, "tmp.txt"},
+                                       {Header::Type::FileData, 12, "Hello World!"},
+                                       {Header::Type::Hash, 3, "!@#"},
+                                       {Header::Type::Exit, 0, ""}};
+
+TEST(FileWriterTest, test_process) {
+    prepareEnv();
+    // FileWriterMock
+    // for (packets)
+    // set
+    // process
+    // EXPECT
+}
+
+// test plan for file reader
+// TODO:
+TEST(FileReaderTest, test_ctr) {
+    auto tsQueues = get2Queue();
+    //    EXPECT_NO_THROW();
 }
 
 }
