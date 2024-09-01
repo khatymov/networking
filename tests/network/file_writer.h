@@ -21,6 +21,7 @@ public:
     FileWriter(std::shared_ptr<ThreadSafeQueue<DataType>> curQueue,
                std::shared_ptr<ThreadSafeQueue<DataType>> nextQueue);
 
+    ~FileWriter();
     // open/close file & write data/calculate hash of a file
     void processDataImpl();
 
@@ -38,6 +39,13 @@ FileWriter<DataType>::FileWriter(std::shared_ptr<ThreadSafeQueue<DataType>> curQ
                                  std::shared_ptr<ThreadSafeQueue<DataType>> nextQueue)
     : DataProcessor<FileWriter<DataType>, DataType>(curQueue, nextQueue) {}
 
+template <typename DataType>
+FileWriter<DataType>::~FileWriter() {
+    if (file_ != nullptr) {
+        std::fclose(file_);
+        file_ = nullptr;
+    }
+}
 
 template <typename DataType>
 void FileWriter<DataType>::processDataImpl() {
