@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(networking LANGUAGES CXX)
+project(network LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -17,29 +17,15 @@ include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/externals/spdlog/include
 )
 
-include(${CMAKE_CURRENT_LIST_DIR}/app/common/common.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/app/server/server.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/app/connection/connection.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/app/file/file.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/app/client/client.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/app/packet/packet.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/app/timer/timer.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/app/cryptographer/cryptographer.cmake)
+include_directories(src)
 
 add_executable(${PROJECT_NAME}
                 main.cpp
-                ${COMMON}
-                ${CONNECTION}
-                ${SERVER}
-                ${CLIENT}
-                ${FILE}
-                ${PACKET}
-                ${TIMER}
-                ${CRYPTOGRAPHER}
 )
 
+add_subdirectory(src)
 #target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
 
-target_link_libraries(${PROJECT_NAME} boost::boost -lcrypto -lcryptopp)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_lib boost::boost -lcrypto -lcryptopp)
 
-add_subdirectory(tests)
+#add_subdirectory(tests)

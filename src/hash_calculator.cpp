@@ -4,6 +4,8 @@
 
 #include "hash_calculator.h"
 
+#include <iostream>
+
 namespace network {
 
 std::string network::HashCalculator::getFileHash(const std::string& filename) {

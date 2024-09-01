@@ -12,6 +12,8 @@ find_package(GTest REQUIRED)
 
 # number of packages to test
 add_definitions(-DQUEUE_DATA_NUM=6)
+add_definitions(-DTEST)
+add_definitions(-DDEBUG)
 
 include(${CMAKE_CURRENT_LIST_DIR}/../app/file/file.cmake)
 

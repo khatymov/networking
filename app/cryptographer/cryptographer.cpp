@@ -15,10 +15,14 @@ void Cryptographer::encrypt(const Packet& source, CryptoPacket& cipher) {
         CBC_Mode<AES>::Encryption enc;
         enc.SetKeyWithIV((CryptoPP::byte*)_key.data(), _key.size(), iv, sizeof(iv));
         // Make room for padding
-        ArraySink cs(&cipher.payload[0], source.header.length + AES::BLOCKSIZE);
+        ArraySink cs(&cipher.payload[0],
+                     source.header.length + AES::BLOCKSIZE);
         // Why should we use new in ArraySource
         //    https://cryptopp.com/wiki/Pipelining#Ownership
-        ArraySource(reinterpret_cast<const CryptoPP::byte*>(source.payload), source.header.length, true, new StreamTransformationFilter(enc, new Redirector(cs)));
+        ArraySource(reinterpret_cast<const CryptoPP::byte*>(source.payload),
+                    source.header.length,
+                    true,
+                    new StreamTransformationFilter(enc, new Redirector(cs)));
         // Set cipher text length now that its known
         cipher.header.length = cs.TotalPutLength();
     } catch (const CryptoPP::Exception& e) {
@@ -43,7 +47,10 @@ void Cryptographer::decrypt(const CryptoPacket& cipher, Packet& plainPacket) {
         ArraySink rs(&recover[0], cipher.header.length);
         // Why should we use new in ArraySource
         //    https://cryptopp.com/wiki/Pipelining#Ownership
-        ArraySource(cipher.payload.data(), cipher.header.length, true, new StreamTransformationFilter(dec, new Redirector(rs)));
+        ArraySource(cipher.payload.data(),
+                    cipher.header.length,
+                    true,
+                    new StreamTransformationFilter(dec, new Redirector(rs)));
         recover.resize(rs.TotalPutLength());
         plainPacket.header.length = rs.TotalPutLength();
         std::copy(recover.begin(), recover.end(), plainPacket.payload);
