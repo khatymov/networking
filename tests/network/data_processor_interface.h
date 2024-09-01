@@ -39,10 +39,12 @@ protected:
 template <typename Derived, typename T>
 void DataProcessor<Derived, T>::waitNextData() {
     // while data
-    while (data_ = currentQueue_->get()) {
+    while ((data_ = currentQueue_->get()) == nullptr) {
         std::this_thread::yield();
         continue;
     }
+
+    assert(data_ != nullptr);
 }
 
 template <typename Derived, typename T>
