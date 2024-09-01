@@ -7,6 +7,8 @@
 
 #include "data_processor_interface.h"
 
+#include "hash_calculator.h"
+
 namespace network {
 
 template <typename DataType>
@@ -42,8 +44,8 @@ void FileWriter<DataType>::processDataImpl() {
     switch (this->data_->header.type) {
         case (Header::Type::FileName): {
 
-            std::filesystem::path filePath(std::string(this->data_->data.data(),
-                                                       this->data_->header.length));
+            std::filesystem::path filePath(std::string(this->data_->data.begin(),
+                                                       this->data_->data.begin() + this->data_->header.length));
             auto fileName = filePath.filename().string();
 
             if (std::filesystem::exists(fileName)) {
@@ -61,7 +63,12 @@ void FileWriter<DataType>::processDataImpl() {
             break;
         };
         case (Header::Type::FileData): {
-            auto bytesWritten = std::fwrite(this->data_->data,
+
+            if (file_ == nullptr) {
+                throw std::runtime_error("File should be opened");
+            }
+
+            auto bytesWritten = std::fwrite(&this->data_->data,
                                             sizeof(this->data_->data[0]),
                                             this->data_->header.length,
                                             file_);
@@ -73,7 +80,35 @@ void FileWriter<DataType>::processDataImpl() {
             break;
         };
         case (Header::Type::Hash): {
+            if (file_ == nullptr) {
+                throw std::runtime_error("File should be opened");
+            }
 
+            std::fclose(file_);
+            file_ = nullptr;
+
+#ifdef DEBUG
+            spdlog::debug("Compare our and client's hash");
+#endif
+            auto curHash = HashCalculator::getFileHash(fileName_);
+            // Client's file hash
+            auto clientFileHash = std::string(this->data_->data.begin(),
+                                              this->data_->data.begin() + this->data_->header.length);
+
+            if (curHash != clientFileHash) {
+                spdlog::error("Client file hash and our hash is different: {} vs {}", clientFileHash, curHash);
+            } else {
+#ifdef DEBUG
+                spdlog::debug("Files hashes are same.");
+#endif
+            }
+
+            break;
+        };
+        case (Header::Type::Exit): {
+            this->isProcessDone_ = true;
+            spdlog::info("Exit packet was accepted");
+            break;
         };
         default: {
             spdlog::error("Unknown packet");
@@ -104,7 +139,6 @@ std::string FileWriter<DataType>::getUniqueName(const std::string& fileName) {
 
     return uniqueName;
 }
-
 
 } // namespace network
 

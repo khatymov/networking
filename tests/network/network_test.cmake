@@ -6,6 +6,8 @@ set( NETWORK_TEST
         ${CMAKE_CURRENT_LIST_DIR}/connection.h
         ${CMAKE_CURRENT_LIST_DIR}/file_writer.h
         ${CMAKE_CURRENT_LIST_DIR}/file_reader.h
+        ${CMAKE_CURRENT_LIST_DIR}/hash_calculator.h
+        ${CMAKE_CURRENT_LIST_DIR}/hash_calculator.cpp
         ${CMAKE_CURRENT_LIST_DIR}/data_processor_interface.h
         ${CMAKE_CURRENT_LIST_DIR}/decryptor.h
         ${CMAKE_CURRENT_LIST_DIR}/encryptor.h
