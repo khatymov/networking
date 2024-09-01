@@ -28,8 +28,7 @@ public:
                         std::shared_ptr<ThreadSafeQueue<DataType>> currentQueue,
                         std::shared_ptr<ThreadSafeQueue<DataType>> nextQueue);
 
-    // get data from socket (client)
-    [[maybe_unused]] void processDataImpl();
+    void processDataImpl();
 
     // read from socket to
     [[maybe_unused]] static bool read(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& data, boost::system::error_code& ec);
@@ -47,7 +46,6 @@ public:
 
 protected:
     boost::asio::ip::tcp::socket socket_;
-    std::unique_ptr<DataType> data_;
 };
 
 
@@ -102,7 +100,7 @@ void Connection<DataType>::processDataImpl() {
     try {
         // TODO: think about place for errorCode
         boost::system::error_code errorCode;
-        handler(socket_, data_, errorCode);
+        handler(socket_, this->data_, errorCode);
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
     } // add some others
