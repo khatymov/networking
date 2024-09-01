@@ -71,9 +71,9 @@ void ThreadSafeQueue<T>::set(std::unique_ptr<T>&& data) {
         return;
     }
 
-    if (queue_.size() + 1 > QUEUE_DATA_NUM) {
-        throw std::runtime_error("Queue size can't be greater QUEUE_DATA_NUM.");
-    }
+//    if (queue_.size() + 1 > QUEUE_DATA_NUM) {
+//        throw std::runtime_error("Queue size can't be greater QUEUE_DATA_NUM.");
+//    }
 
     std::lock_guard<std::mutex> lockGuard(mutex_);
     queue_.push(std::move(data));

@@ -15,38 +15,18 @@ add_definitions(-DQUEUE_DATA_NUM=6)
 add_definitions(-DTEST)
 add_definitions(-DDEBUG)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../app/file/file.cmake)
+include_directories(../src)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../app/packet/packet.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/packet/packet_test.cmake)
-
-#include(${CMAKE_CURRENT_LIST_DIR}/../app/connection/connection.cmake)
-#include(${CMAKE_CURRENT_LIST_DIR}/connection/connection_test.cmake)
-
-#include(${CMAKE_CURRENT_LIST_DIR}/../app/cryptographer/cryptographer.cmake)
-#include(${CMAKE_CURRENT_LIST_DIR}/encryption/encryption_test.cmake)
-
-include(${CMAKE_CURRENT_LIST_DIR}/../app/server/server.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/network/network_test.cmake)
 
 add_executable(
         ${PROJECT_NAME}
-        network/pch.h
-        network/pch.cpp
         test.cpp
-        ${PACKET}
-        ${PACKET_TEST}
-#        ${CONNECTION}
-#        ${CONNECTION_TEST}
-        ${FILE}
-#        ${CRYPTOGRAPHER}
-#        ${ENCRYPTION_TEST}
         ${NETWORK_TEST}
-#        ${SERVER}
 )
 
 # Precompiled header
-target_precompile_headers(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/network/pch.h)
+target_precompile_headers(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../src/pch.h)
 
 target_link_libraries(
         ${PROJECT_NAME}
@@ -61,5 +41,3 @@ enable_testing()
 add_test(run_unit_tests ${PROJECT_NAME})
 
 target_compile_definitions(run_unit_tests PUBLIC PATH_TO_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/assets/")
-
-

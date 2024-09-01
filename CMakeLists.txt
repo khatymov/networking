@@ -28,4 +28,4 @@ add_subdirectory(src)
 
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_lib boost::boost -lcrypto -lcryptopp)
 
-#add_subdirectory(tests)
+add_subdirectory(tests)
