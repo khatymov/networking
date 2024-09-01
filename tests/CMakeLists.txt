@@ -10,6 +10,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
 
 find_package(GTest REQUIRED)
 
+# number of packages to test
+add_definitions(-DQUEUE_DATA_NUM=6)
+
 include(${CMAKE_CURRENT_LIST_DIR}/../app/file/file.cmake)
 
 include(${CMAKE_CURRENT_LIST_DIR}/../app/packet/packet.cmake)
@@ -23,9 +26,6 @@ include(${CMAKE_CURRENT_LIST_DIR}/packet/packet_test.cmake)
 
 include(${CMAKE_CURRENT_LIST_DIR}/../app/server/server.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/network/network_test.cmake)
-
-
-
 
 add_executable(
         ${PROJECT_NAME}
