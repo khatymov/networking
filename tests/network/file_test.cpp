@@ -49,18 +49,62 @@ void prepareEnv() {
     std::system("[[ -f tmp.txt ]] && rm tmp.txt");
 }
 
-std::vector<CryptoPacket> getAllPacket{{Header::Type::FileName, 7, "tmp.txt"},
-                                       {Header::Type::FileData, 12, "Hello World!"},
-                                       {Header::Type::Hash, 3, "!@#"},
-                                       {Header::Type::Exit, 0, ""}};
+std::string readFileIntoString(const std::string& filename) {
+    // Open the file with ifstream in binary mode and at the end of the file
+    std::ifstream file(filename, std::ios::binary);
 
-TEST(FileWriterTest, test_process) {
+    // Check if the file opened successfully
+    if (!file) {
+        throw std::runtime_error("Failed to open file: " + filename);
+    }
+
+    // Use a stringstream to read the file contents into a string
+    std::ostringstream oss;
+    oss << file.rdbuf();
+
+    // Return the contents of the stringstream as a string
+    return oss.str();
+}
+
+std::vector<CryptoPacket> packets{{Header::Type::FileName, 7, "tmp.txt"},
+                                       {Header::Type::FileData, 12, "Hello World!"},
+                                       {Header::Type::Hash, 64, "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069"},
+                                       {Header::Type::Exit, 0, ""}};
+template <typename T>
+class FileWriterMock: public FileWriter<T> {
+public:
+    explicit FileWriterMock(std::shared_ptr<ThreadSafeQueue<T>> currentQueue,
+                   std::shared_ptr<ThreadSafeQueue<T>> nextQueue)
+        : FileWriter<T>(currentQueue, nextQueue) {}
+
+    std::unique_ptr<T> getData() {
+        return std::move(this->data_);
+    }
+
+    void setData(std::unique_ptr<T>&& data) {
+        this->data_ = std::move(data);
+    }
+};
+
+TEST(FileWriterTest, test_cryptoProcess) {
     prepareEnv();
-    // FileWriterMock
-    // for (packets)
-    // set
-    // process
-    // EXPECT
+    auto tsQueue = get2Queue();
+    FileWriterMock<CryptoPacket> fileWriter(tsQueue[0], tsQueue[1]);
+    for (const auto curPack: packets) {
+        fileWriter.setData(make_unique<CryptoPacket>(curPack));
+        fileWriter.processData();
+        if (curPack.header.type == Header::Type::FileName) {
+            auto expectedFile(string(curPack.data.begin(), curPack.data.begin() + curPack.header.length));
+            EXPECT_TRUE(std::filesystem::exists(expectedFile));
+        }
+    }
+
+    EXPECT_TRUE(fileWriter.isDone());
+
+    auto fileName(string(packets[0].data.begin(), packets[0].data.begin() + packets[0].header.length));
+    auto fileData = readFileIntoString(fileName);
+    auto expectedData(string(packets[1].data.begin(), packets[1].data.begin() + packets[1].header.length));
+    EXPECT_EQ(fileData, expectedData);
 }
 
 // test plan for file reader
