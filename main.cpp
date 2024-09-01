@@ -35,10 +35,10 @@ int main(int argc, char* argv[]) {
 
     try {
         if (consoleParams.isClient()) {
-            ClientHandler clientHandler(consoleParams);
+            ClientHandler<MyPacket<CryptoPP::byte>> clientHandler(consoleParams);
             clientHandler.handle();
         } else {
-            Server server(consoleParams);
+            Server<CryptoPacket> server(consoleParams);
             server.handleConnections();
         }
     } catch (const std::runtime_error& error) {

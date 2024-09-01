@@ -6,6 +6,7 @@
 #define NETWORKING_FILE_READER_H
 
 #include "data_processor_interface.h"
+
 #include "hash_calculator.h"
 
 namespace network {
