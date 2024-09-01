@@ -12,6 +12,7 @@
 
 namespace network {
 struct Header {
+    // (single responsibility principle violation: Ack and Nack are used only by server/ others types by clients)
     enum class Type : uint32_t {
         Ack,      // Confirm that packet received
         Nack,      // Notify that packet didn't receive
