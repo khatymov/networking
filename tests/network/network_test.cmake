@@ -7,6 +7,7 @@ set( NETWORK_TEST
         ${CMAKE_CURRENT_LIST_DIR}/file_writer.h
         ${CMAKE_CURRENT_LIST_DIR}/data_processor_interface.h
         ${CMAKE_CURRENT_LIST_DIR}/decryptor.h
+        ${CMAKE_CURRENT_LIST_DIR}/encryptor.h
         ${CMAKE_CURRENT_LIST_DIR}/server.h
         ${CMAKE_CURRENT_LIST_DIR}/server.cpp
         ${CMAKE_CURRENT_LIST_DIR}/client_handler.h
@@ -17,4 +18,6 @@ set( NETWORK_TEST
         ${CMAKE_CURRENT_LIST_DIR}/connection_test.h
         ${CMAKE_CURRENT_LIST_DIR}/connection_test.cpp
         ${CMAKE_CURRENT_LIST_DIR}/defs.h
+        ${CMAKE_CURRENT_LIST_DIR}/crypto_test.h
+        ${CMAKE_CURRENT_LIST_DIR}/crypto_test.cpp
    )
