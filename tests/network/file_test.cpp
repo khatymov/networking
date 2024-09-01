@@ -70,6 +70,15 @@ std::vector<CryptoPacket> packets{{Header::Type::FileName, 7, "tmp.txt"},
                                        {Header::Type::FileData, 12, "Hello World!"},
                                        {Header::Type::Hash, 64, "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069"},
                                        {Header::Type::Exit, 0, ""}};
+
+std::vector<CryptoPacket> withMissedPackets0{{Header::Type::FileData, 12, "Hello World!"},
+                                            {Header::Type::Hash, 64, "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069"},
+                                            {Header::Type::Exit, 0, ""}};
+
+std::vector<CryptoPacket> withMissedPackets1{{Header::Type::FileName, 7, "tmp.txt"},
+                                             {Header::Type::Hash, 64, "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069"},
+                                             {Header::Type::Exit, 0, ""}};
+
 template <typename T>
 class FileWriterMock: public FileWriter<T> {
 public:
@@ -117,6 +126,32 @@ TEST(FileWriterTest, test_cryptoFileExists) {
         fileWriter.setData(make_unique<CryptoPacket>(curPack));
         EXPECT_NO_THROW(fileWriter.processData());
     }
+}
+
+TEST(FileWriterTest, test_cryptoMissedPacks) {
+    //Prepare env
+    std::system("touch tmp.txt");
+
+    EXPECT_THROW([](){
+        auto tsQueue = get2Queue();
+        FileWriterMock<CryptoPacket> fileWriter(tsQueue[0], tsQueue[1]);
+        for (const auto curPack: withMissedPackets0) {
+            fileWriter.setData(make_unique<CryptoPacket>(curPack));
+            fileWriter.processData();
+        };
+    }(),std::runtime_error);
+
+    prepareEnv();
+
+    EXPECT_THROW([](){
+        auto tsQueue = get2Queue();
+        FileWriterMock<CryptoPacket> fileWriter(tsQueue[0], tsQueue[1]);
+        for (const auto curPack: withMissedPackets1) {
+            fileWriter.setData(make_unique<CryptoPacket>(curPack));
+            fileWriter.processData();
+        };
+    }(),std::runtime_error);
+
 }
 
 // test plan for file reader

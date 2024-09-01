@@ -105,6 +105,7 @@ void FileWriter<DataType>::processDataImpl() {
 
             if (curHash != clientFileHash) {
                 spdlog::error("Client file hash and our hash is different: {} vs {}", clientFileHash, curHash);
+                throw std::runtime_error("Hashes aren't same");
             } else {
 #ifdef DEBUG
                 spdlog::debug("Files hashes are same.");
