@@ -83,6 +83,7 @@ void ClientHandler<T>::handle() {
             fileReader->processData();
             fileReader->notifyComplete();
         }
+
         // send file's hash to connection
         fileReader->waitNextData();
         fileReader->setHash();
@@ -92,6 +93,8 @@ void ClientHandler<T>::handle() {
         fileReader->waitNextData();
         fileReader->setExitPack();
         fileReader->notifyComplete();
+
+        spdlog::debug("fileReader->isDone()");
     });
 
     threads.emplace_back([encryptor = std::move(encryptor_)](){
@@ -100,6 +103,7 @@ void ClientHandler<T>::handle() {
             encryptor->processData();
             encryptor->notifyComplete();
         }
+        spdlog::debug("encryptor->isDone()");
     });
 
     threads.emplace_back([connection = std::move(connection_)](){
@@ -108,6 +112,7 @@ void ClientHandler<T>::handle() {
             connection->processData();
             connection->notifyComplete();
         }
+        spdlog::debug("connection->isDone()");
     });
 
     for (auto& th: threads) {

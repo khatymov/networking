@@ -59,6 +59,7 @@ void Session<T>::handle() {
             connection->processData();
             connection->notifyComplete();
         }
+        spdlog::debug("connection->isDone()");
     });
 
     threads.emplace_back([decryptor = std::move(decryptor_)](){
@@ -67,6 +68,7 @@ void Session<T>::handle() {
             decryptor->processData();
             decryptor->notifyComplete();
         }
+        spdlog::debug("decryptor->isDone()");
     });
 
     threads.emplace_back([fileWriter = std::move(fileWriter_)](){
@@ -75,6 +77,7 @@ void Session<T>::handle() {
             fileWriter->processData();
             fileWriter->notifyComplete();
         }
+        spdlog::debug("fileWriter->isDone()");
     });
 
     for (auto& th: threads) {
