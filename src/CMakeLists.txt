@@ -3,7 +3,6 @@ project(network_lib)
 # Source files
 set(SOURCE_FILES
     hash_calculator.cpp
-    client_handler.cpp
 )
 
 set(HEADER_FILES
