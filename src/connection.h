@@ -82,12 +82,16 @@ Connection<DataType>::Connection(const Mode mode,
                       std::unique_ptr<DataType>& data,
                       boost::system::error_code& errorCode) {
 
-            if (Connection<DataType>::write(socket, data, errorCode)) {
+            if (not Connection<DataType>::write(socket, data, errorCode)) {
                 spdlog::error("Client can't send data");
             }
-            // TODO handle nack packet
-            if (Connection<DataType>::read(socket, data, errorCode)) {
+
+            if (not Connection<DataType>::read(socket, data, errorCode)) {
                 spdlog::error("Client didn't get Acknowledgment Packet");
+            }
+
+            if (data->header.type == Header::Type::Nack) {
+                spdlog::error("Client got Nack Packet");
             }
 
             if (errorCode) {
@@ -103,6 +107,9 @@ void Connection<DataType>::processDataImpl() {
         // TODO: think about place for errorCode
         boost::system::error_code errorCode;
         handler(socket_, this->data_, errorCode);
+        if (this->data_->header.type == Header::Type::Exit) {
+            this->isProcessDone_ = true;
+        }
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
     } // add some others
@@ -112,10 +119,10 @@ void Connection<DataType>::processDataImpl() {
 template <typename DataType>
 bool Connection<DataType>::write(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& packet, boost::system::error_code& ec) {
     // TODO: fix
-    auto* raw_header_ptr = reinterpret_cast<char*>(&packet->header);
+//    auto* raw_header_ptr = reinterpret_cast<char*>(&packet->header);
     //send header
     auto sentHeaderSize = boost::asio::write(socket,
-                                             boost::asio::buffer(raw_header_ptr, sizeof(packet->header)),
+                                             boost::asio::buffer(&packet->header, sizeof(packet->header)),
                                              boost::asio::transfer_exactly(sizeof(packet->header)),
                                              ec);
     if (ec)
@@ -143,10 +150,10 @@ bool Connection<DataType>::write(boost::asio::ip::tcp::socket& socket, std::uniq
 template <typename DataType>
 bool Connection<DataType>::read(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& packet, boost::system::error_code& ec) {
     // TODO: fix
-    auto* raw_header_ptr = reinterpret_cast<char*>(&packet->header);
+//    auto* raw_header_ptr = reinterpret_cast<char*>(&packet->header);
 
     auto headerSize = boost::asio::read(socket,
-                                        boost::asio::buffer(raw_header_ptr, sizeof(packet->header)),
+                                        boost::asio::buffer(&packet->header, sizeof(packet->header)),
                                         boost::asio::transfer_exactly(sizeof(packet->header)),
                                         ec);
 
