@@ -83,7 +83,12 @@ void ClientHandler<T>::handle() {
         }
         // send file's hash to connection
         fileReader->waitNextData();
-        fileReader->setFileName();
+        fileReader->setHash();
+        fileReader->notifyComplete();
+
+        // send file's hash to connection
+        fileReader->waitNextData();
+        fileReader->setExitPack();
         fileReader->notifyComplete();
     });
 
