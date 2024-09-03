@@ -32,6 +32,8 @@ public:
     // set file;s hash to data_
     void setHash();
 
+    void setExitPack();
+
 protected:
     std::FILE* file_;
     std::string fileName_;
@@ -85,6 +87,12 @@ void FileReader<DataType>::setHash() {
     this->data_->header.type = Header::Type::Hash;
     this->data_->header.length = curHash.size();
     memcpy(this->data_->data.data(), curHash.c_str(), curHash.size());
+}
+
+template <typename DataType>
+void FileReader<DataType>::setExitPack() {
+    this->data_->header.type = Header::Type::Exit;
+    this->data_->header.length = 0;
 }
 
 } // namespace network
