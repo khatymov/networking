@@ -35,7 +35,7 @@ protected:
 
     std::vector<std::shared_ptr<ThreadSafeQueue<T>>> tsQueues_;
     std::unique_ptr<FileReader<T>> fileReader_;
-    std::unique_ptr<Encryptor<T>> encryptor;
+    std::unique_ptr<Encryptor<T>> encryptor_;
     std::unique_ptr<Connection<T>> connection_;
 };
 
@@ -52,18 +52,20 @@ ClientHandler<T>::ClientHandler(const ConsoleParams& params)
     // one queue is primary ~ all memory for packets allocates in that queue
     tsQueues_ = {std::make_shared<ThreadSafeQueue<T>>(true) // <- FileReader
                 ,std::make_shared<ThreadSafeQueue<T>>(false) // <- Encryptor
-//                ,std::make_shared<ThreadSafeQueue<T>>(false) // <- Connection
+                ,std::make_shared<ThreadSafeQueue<T>>(false) // <- Connection
                  };
 
     // reader is entry point. All works starts from reading from file and then send it to connection component
-    fileReader_ = std::make_unique<FileReader<CryptoPacket>>(params.targetFile.data(), tsQueues_[0], tsQueues_[1]);
+    fileReader_ = std::make_unique<FileReader<T>>(params.targetFile.data(), tsQueues_[0], tsQueues_[1]);
+
+    encryptor_ = std::make_unique<Encryptor<T>>(tsQueues_[1], tsQueues_[2]);
 
     boost::system::error_code errorCode;
     socket_.connect(endpoint_, errorCode);
     if (errorCode) {
         throw std::runtime_error("Socket could not connect to the server");
     }
-    connection_ = std::make_unique<Connection<T>>(Mode::Client, std::move(socket_), tsQueues_[1], tsQueues_[0]);
+    connection_ = std::make_unique<Connection<T>>(Mode::Client, std::move(socket_), tsQueues_[2], tsQueues_[0]);
 }
 
 template <typename T>
@@ -90,6 +92,14 @@ void ClientHandler<T>::handle() {
         fileReader->waitNextData();
         fileReader->setExitPack();
         fileReader->notifyComplete();
+    });
+
+    threads.emplace_back([encryptor = std::move(encryptor_)](){
+        while (not encryptor->isDone()) {
+            encryptor->waitNextData();
+            encryptor->processData();
+            encryptor->notifyComplete();
+        }
     });
 
     threads.emplace_back([connection = std::move(connection_)](){
