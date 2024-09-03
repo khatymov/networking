@@ -39,15 +39,14 @@ Session<T>::Session(boost::asio::ip::tcp::socket socket) {
     // one queue is primary ~ all memory for packets allocates in that queue
     tsQueues_ = {std::make_shared<ThreadSafeQueue<T>>(true) // <- Connection
                 ,std::make_shared<ThreadSafeQueue<T>>(false) // <- Decryptor
-//                ,std::make_shared<ThreadSafeQueue<T>>(false) // <- FileWriter
+                ,std::make_shared<ThreadSafeQueue<T>>(false) // <- FileWriter
     };
 
     // Connection is entry point.
     // All works starts from reading from socket and then send it to the next component
     connection_ = std::make_unique<Connection<T>>(Mode::Server, std::move(socket), tsQueues_[0], tsQueues_[1]);
-//    decryptor_ = std::make_unique<Decryptor<T>>(tsQueues_[1], tsQueues_[2]);
-//    fileWriter_ = std::make_unique<FileWriter<T>>(tsQueues_[2], tsQueues_[0]);
-    fileWriter_ = std::make_unique<FileWriter<T>>(tsQueues_[1], tsQueues_[0]);
+    decryptor_ = std::make_unique<Decryptor<T>>(tsQueues_[1], tsQueues_[2]);
+    fileWriter_ = std::make_unique<FileWriter<T>>(tsQueues_[2], tsQueues_[0]);
 }
 
 template <typename T>
@@ -62,13 +61,13 @@ void Session<T>::handle() {
         }
     });
 
-//    threads.emplace_back([connection = std::move(connection_)](){
-//        while (not connection->isDone()) {
-//            connection->waitNextData();
-//            connection->processData();
-//            connection->notifyComplete();
-//        }
-//    });
+    threads.emplace_back([decryptor = std::move(decryptor_)](){
+        while (not decryptor->isDone()) {
+            decryptor->waitNextData();
+            decryptor->processData();
+            decryptor->notifyComplete();
+        }
+    });
 
     threads.emplace_back([fileWriter = std::move(fileWriter_)](){
         while (not fileWriter->isDone()) {
