@@ -138,7 +138,7 @@ bool Connection<DataType>::write(boost::asio::ip::tcp::socket& socket, std::uniq
     }
 
     //send payload
-//    if (packet->header.length > 0) {
+    if (sentHeaderSize > 0) {
         auto sentPayloadSize = boost::asio::write(socket,
                                                   boost::asio::buffer(packet->data, packet->header.length),
                                                   boost::asio::transfer_exactly(packet->header.length),
@@ -147,7 +147,7 @@ bool Connection<DataType>::write(boost::asio::ip::tcp::socket& socket, std::uniq
             spdlog::error("Send packet payload error: {}", ec.message());
             return false;
         }
-//    }
+    }
 
     return true;
 }
@@ -169,16 +169,17 @@ bool Connection<DataType>::read(boost::asio::ip::tcp::socket& socket, std::uniqu
     }
 
     //read payload
-    auto DataSize = boost::asio::read(socket,
-                                      boost::asio::buffer(packet->data, packet->header.length),
-                                      boost::asio::transfer_exactly(packet->header.length),
-                                      ec);
-    if (ec)
-    {
-        spdlog::error("Read packet payload error: {}", ec.message());
-        return false;
-    }
+    if (headerSize > 0) {
+        auto DataSize =
+            boost::asio::read(socket, boost::asio::buffer(packet->data, packet->header.length),
+                              boost::asio::transfer_exactly(packet->header.length),
+                              ec);
 
+        if (ec) {
+            spdlog::error("Read packet payload error: {}", ec.message());
+            return false;
+        }
+    }
     return true;
 }
 
