@@ -31,7 +31,8 @@ public:
 
     void processDataImpl();
 
-    // read from socket to
+    // read from/to socket
+    // TODO: make them async
     [[maybe_unused]] static bool read(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& data, boost::system::error_code& ec);
     [[maybe_unused]] static bool write(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& data, boost::system::error_code& ec);
 
@@ -133,7 +134,7 @@ bool Connection<DataType>::write(boost::asio::ip::tcp::socket& socket, std::uniq
     }
 
     //send payload
-    if (sentHeaderSize > 0) {
+    if (packet->header.length > 0) {
         auto sentPayloadSize = boost::asio::write(socket,
                                                   boost::asio::buffer(packet->data, packet->header.length),
                                                   boost::asio::transfer_exactly(packet->header.length),
@@ -160,7 +161,7 @@ bool Connection<DataType>::read(boost::asio::ip::tcp::socket& socket, std::uniqu
     }
 
     //read payload
-    if (headerSize > 0) {
+    if (packet->header.length > 0) {
         auto DataSize =
             boost::asio::read(socket, boost::asio::buffer(packet->data, packet->header.length),
                               boost::asio::transfer_exactly(packet->header.length),

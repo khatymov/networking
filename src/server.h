@@ -48,8 +48,7 @@ void Server<T>::handleConnections() {
     acceptor_.async_accept([this](boost::system::error_code errorCode, tcp::socket socket){
         if (!errorCode) {
             spdlog::info("New connection accepted");
-            Session<T> session(std::move(socket));
-            session.handle();
+            std::make_shared<Session<T>>(std::move(socket))->handle();
         } else {
             spdlog::error("Error has occurred during acceptance: {}", errorCode.message());
         }

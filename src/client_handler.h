@@ -36,7 +36,7 @@ protected:
     std::vector<std::shared_ptr<ThreadSafeQueue<T>>> tsQueues_;
     std::unique_ptr<FileReader<T>> fileReader_;
     std::unique_ptr<Encryptor<T>> encryptor_;
-    std::unique_ptr<Connection<T>> connection_;
+    std::shared_ptr<Connection<T>> connection_;
 };
 
 using namespace boost::asio;
@@ -65,7 +65,7 @@ ClientHandler<T>::ClientHandler(const ConsoleParams& params)
     if (errorCode) {
         throw std::runtime_error("Socket could not connect to the server");
     }
-    connection_ = std::make_unique<Connection<T>>(Mode::Client, std::move(socket_), tsQueues_[2], tsQueues_[0]);
+    connection_ = std::make_shared<Connection<T>>(Mode::Client, std::move(socket_), tsQueues_[2], tsQueues_[0]);
 }
 
 template <typename T>
@@ -106,7 +106,7 @@ void ClientHandler<T>::handle() {
         spdlog::debug("encryptor->isDone()");
     });
 
-    threads.emplace_back([connection = std::move(connection_)](){
+    threads.emplace_back([connection = connection_](){
         while (not connection->isDone()) {
             connection->waitNextData();
             connection->processData();
