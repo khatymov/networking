@@ -36,8 +36,7 @@ public:
     [[maybe_unused]] static bool write(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& data, boost::system::error_code& ec);
 
     std::function<void(boost::asio::ip::tcp::socket& socket,
-                       std::unique_ptr<DataType>& data,
-                       boost::system::error_code& ec)> handler;
+                       std::unique_ptr<DataType>& data)> handler;
 
     // to be created once and reuse it
     // TODO move somewhere else
@@ -63,8 +62,9 @@ Connection<DataType>::Connection(const Mode mode,
 
     if (mode == Mode::Server) {
         handler = [&](boost::asio::ip::tcp::socket& socket,
-                      std::unique_ptr<DataType>& data,
-                      boost::system::error_code& errorCode) {
+                      std::unique_ptr<DataType>& data) {
+
+            boost::system::error_code errorCode;
 
             if (Connection<DataType>::read(socket, data, errorCode)) {
                 // we got the package - send Acknowledgment Packet
@@ -83,9 +83,9 @@ Connection<DataType>::Connection(const Mode mode,
         };
     } else {
         handler = [&](boost::asio::ip::tcp::socket& socket,
-                      std::unique_ptr<DataType>& data,
-                      boost::system::error_code& errorCode) {
+                      std::unique_ptr<DataType>& data) {
 
+            boost::system::error_code errorCode;
             if (this->data_->header.type == Header::Type::Exit) {
                 this->isProcessDone_ = true;
             }
@@ -112,10 +112,7 @@ Connection<DataType>::Connection(const Mode mode,
 template <typename DataType>
 void Connection<DataType>::processDataImpl() {
     try {
-        // TODO: think about place for errorCode
-        boost::system::error_code errorCode;
-        handler(socket_, this->data_, errorCode);
-
+        handler(socket_, this->data_);
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
     } // add some others
@@ -131,10 +128,8 @@ bool Connection<DataType>::write(boost::asio::ip::tcp::socket& socket, std::uniq
                                              boost::asio::buffer(&packet->header, sizeof(packet->header)),
                                              boost::asio::transfer_exactly(sizeof(packet->header)),
                                              ec);
-    if (ec)
-    {
+    if (ec) {
         spdlog::error("Send packet header error: {}", ec.message());
-        return false;
     }
 
     //send payload
@@ -155,9 +150,6 @@ bool Connection<DataType>::write(boost::asio::ip::tcp::socket& socket, std::uniq
 // TODO set timeout
 template <typename DataType>
 bool Connection<DataType>::read(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& packet, boost::system::error_code& ec) {
-    // TODO: fix
-//    auto* raw_header_ptr = reinterpret_cast<char*>(&packet->header);
-
     auto headerSize = boost::asio::read(socket,
                                         boost::asio::buffer(&packet->header, sizeof(packet->header)),
                                         boost::asio::transfer_exactly(sizeof(packet->header)),
@@ -165,9 +157,6 @@ bool Connection<DataType>::read(boost::asio::ip::tcp::socket& socket, std::uniqu
 
     if (ec) {
         spdlog::error("Read header error: {}", ec.message());
-        return false;
-    } else {
-        spdlog::error("Read header ok");
     }
 
     //read payload
