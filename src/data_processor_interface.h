@@ -45,8 +45,7 @@ void DataProcessor<Derived, T>::waitNextData() {
     while ((data_ = currentQueue_->get()) == nullptr) {
         const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - tsStart_);
         if (duration.count() > 100) {
-//            std::cerr << "Wait for too long" << std::endl;
-//            throw std::runtime_error("Wait for too long");
+            throw std::runtime_error("Wait next data for too long");
         }
         std::this_thread::yield();
         continue;
