@@ -30,6 +30,7 @@ target_precompile_headers(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../s
 
 target_link_libraries(
         ${PROJECT_NAME}
+        network_lib
         gtest
         boost::boost
         -lcrypto

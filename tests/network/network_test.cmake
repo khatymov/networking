@@ -9,4 +9,5 @@ set( NETWORK_TEST
         ${CMAKE_CURRENT_LIST_DIR}/crypto_test.cpp
         ${CMAKE_CURRENT_LIST_DIR}/file_test.h
         ${CMAKE_CURRENT_LIST_DIR}/file_test.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/defs_mock.h
    )
