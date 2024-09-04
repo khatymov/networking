@@ -39,27 +39,24 @@ template <typename T>
 Server<T>::Server(const ConsoleParams& params)
     : acceptor_(ioContext_, tcp::endpoint(make_address(params.ip.data()), params.port)) {
     spdlog::info("Server started with ip and port: [{}:{}]", params.ip.data(), params.port);
+    handleConnections();
 }
 
 template <typename T>
 void Server<T>::handleConnections() {
-    while (true) {
-        tcp::socket socket(ioContext_);
-        spdlog::info("Waiting for a connection...");
-
-        // Synchronously accept a new connection
-        acceptor_.accept(socket);
-        spdlog::info("New connection accepted");
-
-        // Create a new thread for each session
-        std::thread client_thread([&socket]() {
+    spdlog::info("Waiting for a connection...");
+    acceptor_.async_accept([this](boost::system::error_code errorCode, tcp::socket socket){
+        if (!errorCode) {
+            spdlog::info("New connection accepted");
             Session<T> session(std::move(socket));
             session.handle();
-        });
+        } else {
+            spdlog::error("Error has occurred during acceptance: {}", errorCode.message());
+        }
+        handleConnections();
+    });
 
-        // Detach the thread so it can run independently
-        client_thread.detach();
-    }
+    ioContext_.run();
 }
 
 } // namespace network
