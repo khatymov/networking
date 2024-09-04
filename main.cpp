@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
 
     try {
         if (consoleParams.isClient()) {
-            ClientHandler<MyPacket<CryptoPP::byte>> clientHandler(consoleParams);
+            ClientHandler<CryptoPacket> clientHandler(consoleParams);
             clientHandler.handle();
         } else {
             Server<CryptoPacket> server(consoleParams);
