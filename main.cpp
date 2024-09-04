@@ -38,8 +38,10 @@ int main(int argc, char* argv[]) {
             ClientHandler<CryptoPacket> clientHandler(consoleParams);
             clientHandler.handle();
         } else {
-            Server<CryptoPacket> server(consoleParams);
+            boost::asio::io_context ioContext;
+            Server<CryptoPacket> server(consoleParams, ioContext);
             server.handleConnections();
+            ioContext.run();
         }
     } catch (const std::runtime_error& error) {
         cerr << "Runtime error in main: " << error.what() << endl;

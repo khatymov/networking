@@ -43,8 +43,8 @@ template <typename Derived, typename T>
 void DataProcessor<Derived, T>::waitNextData() {
     // while data
     while ((data_ = currentQueue_->get()) == nullptr) {
-        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - tsStart_);
-        if (duration.count() > 100) {
+        const auto duration = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - tsStart_);
+        if (duration.count() > 30) {
             throw std::runtime_error("Wait next data for too long");
         }
         std::this_thread::yield();

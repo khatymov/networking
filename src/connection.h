@@ -17,7 +17,7 @@ namespace network {
     // waitNextData - wait available data for current queue (some other component should give it to us)
     // notifyComplete - give data that we got in processDataImpl to the next component
 template <typename DataType>
-class Connection: public DataProcessor<Connection<DataType>, DataType> {
+class Connection: public std::enable_shared_from_this<Connection<DataType>>, public DataProcessor<Connection<DataType>, DataType> {
     Connection(const Connection&) = delete;
     Connection(Connection&&) = delete;
     Connection& operator = (const Connection&) = delete;
@@ -36,6 +36,15 @@ public:
     [[maybe_unused]] static bool read(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& data, boost::system::error_code& ec);
     [[maybe_unused]] static bool write(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& data, boost::system::error_code& ec);
 
+    ~Connection();
+    void run();
+
+    void readHead();
+    void readPayload();
+
+    void writeHead();
+//    void writePayload();
+
     std::function<void(boost::asio::ip::tcp::socket& socket,
                        std::unique_ptr<DataType>& data)> handler;
 
@@ -50,6 +59,84 @@ protected:
     boost::asio::ip::tcp::socket socket_;
 };
 
+template <typename DataType>
+Connection<DataType>::~Connection() {
+    spdlog::debug("~Connection()");
+}
+
+template <typename DataType>
+void Connection<DataType>::run() {
+    readHead();
+}
+
+template <typename DataType>
+void Connection<DataType>::readHead() {
+    //????
+    this->waitNextData();
+    auto self(this->shared_from_this());
+    boost::asio::async_read(socket_, boost::asio::buffer(&this->data_->header, sizeof(this->data_->header)),
+                            //    boost::asio::async_read(socket_, boost::asio::buffer(&packet.header, sizeof(packet.header)),
+                            [this, self] (boost::system::error_code errorCode, std::size_t length) {
+//                                spdlog::debug("Got pack with len: {} or {}", length, this->data_->header.length);
+                                if (!errorCode) {
+                                    if (this->data_->header.type == Header::Type::Exit) {
+                                        this->isProcessDone_ = true;
+                                    }
+
+                                    if (this->data_->header.length > 0) {
+                                        readPayload();
+                                    } else {
+                                        //!!! Be cautious
+                                        //                                           Connection<DataType>::write(socket_, ackPackPtr, errorCode);
+                                    }
+                                } else {
+                                    spdlog::error("error header: {}", errorCode.message());
+                                    socket_.close();
+                                }
+                            });
+}
+
+template <typename DataType>
+void Connection<DataType>::readPayload() {
+    auto self(this->shared_from_this());
+    boost::asio::async_read(socket_, boost::asio::buffer(&this->data_->data, this->data_->header.length),
+                            [this, self] (boost::system::error_code errorCode, std::size_t length) {
+                                if (!errorCode) {
+                                    if (this->data_->header.length > 0) {
+                                        writeHead();
+                                        //                                        Connection<DataType>::write(socket_, ackPackPtr, errorCode);
+                                    } else {
+                                        //!!! Be cautious
+                                    }
+                                } else {
+                                    //                                    Connection::write(socket_, nackPackPtr, errorCode);
+                                    spdlog::error("error header: {}", errorCode.message());
+                                    socket_.close();
+                                }
+                            });
+}
+
+template <typename DataType>
+void Connection<DataType>::writeHead() {
+    auto self(this->shared_from_this());
+    boost::asio::async_write(socket_, boost::asio::buffer(&ackPackPtr->header, sizeof(ackPackPtr->header)),
+                             [this, self](boost::system::error_code errorCode, std::size_t /*length*/) {
+                                 if (!errorCode) {
+                                     this->notifyComplete();
+                                     //!!! Be cautious
+                                     if (not this->isDone()) {
+                                         readHead();
+                                     }
+                                 } else {
+                                     spdlog::error("error send header: {}", errorCode.message());
+                                 }
+                             });
+}
+
+//template <typename DataType>
+//void Connection<DataType>::writePayload() {
+//
+//}
 
 template <typename DataType>
 Connection<DataType>::Connection(const Mode mode,

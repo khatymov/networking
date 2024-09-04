@@ -14,53 +14,58 @@
 namespace network {
 
 template <typename T>
-class Session {
+class Session: public std::enable_shared_from_this<Session<T>> {
     Session(const Session&) = delete;
     Session(Session&&) = delete;
     Session& operator = (const Session&) = delete;
     Session& operator = (Session&&) = delete;
 public:
 
-    Session(boost::asio::ip::tcp::socket socket);
+    Session(std::vector<std::shared_ptr<ThreadSafeQueue<T>>>& tsQueues_);
+
+    ~Session();
+//    Session(boost::asio::ip::tcp::socket socket);
 
     void handle();
 
 protected:
-    std::vector<std::shared_ptr<ThreadSafeQueue<T>>> tsQueues_;
 
-    std::unique_ptr<Connection<T>> connection_;
+
+    std::shared_ptr<Connection<T>> connection_;
     std::unique_ptr<Decryptor<T>> decryptor_;
     std::unique_ptr<FileWriter<T>> fileWriter_;
+    std::vector<std::thread> threads;
 };
+template <typename T>
+Session<T>::~Session() {
+    for (auto& th: threads) {
+        th.join();
+    }
+}
 
 template <typename T>
-Session<T>::Session(boost::asio::ip::tcp::socket socket) {
+Session<T>::Session(std::vector<std::shared_ptr<ThreadSafeQueue<T>>>& tsQueues_) {
+//    Session<T>::Session(boost::asio::ip::tcp::socket socket) {
     // queues should the same number as number of components
     // one queue is primary ~ all memory for packets allocates in that queue
-    tsQueues_ = {std::make_shared<ThreadSafeQueue<T>>(true) // <- Connection
-                ,std::make_shared<ThreadSafeQueue<T>>(false) // <- Decryptor
-                ,std::make_shared<ThreadSafeQueue<T>>(false) // <- FileWriter
-    };
+//    tsQueues_ = {std::make_shared<ThreadSafeQueue<T>>(true) // <- Connection
+//                ,std::make_shared<ThreadSafeQueue<T>>(false) // <- Decryptor
+//                ,std::make_shared<ThreadSafeQueue<T>>(false) // <- FileWriter
+//    };
 
     // Connection is entry point.
     // All works starts from reading from socket and then send it to the next component
-    connection_ = std::make_unique<Connection<T>>(Mode::Server, std::move(socket), tsQueues_[0], tsQueues_[1]);
+
     decryptor_ = std::make_unique<Decryptor<T>>(tsQueues_[1], tsQueues_[2]);
     fileWriter_ = std::make_unique<FileWriter<T>>(tsQueues_[2], tsQueues_[0]);
 }
 
 template <typename T>
 void Session<T>::handle() {
-    std::vector<std::thread> threads;
 
-    threads.emplace_back([connection = std::move(connection_)](){
-        while (not connection->isDone()) {
-            connection->waitNextData();
-            connection->processData();
-            connection->notifyComplete();
-        }
-        spdlog::debug("connection->isDone()");
-    });
+//    threads.emplace_back([connection = connection_](){
+//
+//    });
 
     threads.emplace_back([decryptor = std::move(decryptor_)](){
         while (not decryptor->isDone()) {
@@ -80,9 +85,11 @@ void Session<T>::handle() {
         spdlog::debug("fileWriter->isDone()");
     });
 
-    for (auto& th: threads) {
-        th.join();
-    }
+//    spdlog::debug("Connection begin");
+//    std::make_shared<Connection<T>>(Mode::Server, std::move(socket), tsQueues_[0], tsQueues_[1])->run();
+//    spdlog::debug("Connection end");
+
+
 }
 
 }  // network
