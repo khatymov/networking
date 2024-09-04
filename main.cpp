@@ -9,7 +9,7 @@
 
 #include "consoleParams.h"
 
-#include "client_handler.h"
+//#include "client_handler.h"
 #include "server.h"
 
 using namespace std;
@@ -35,8 +35,8 @@ int main(int argc, char* argv[]) {
 
     try {
         if (consoleParams.isClient()) {
-            ClientHandler<CryptoPacket> clientHandler(consoleParams);
-            clientHandler.handle();
+//            ClientHandler<CryptoPacket> clientHandler(consoleParams);
+//            clientHandler.handle();
         } else {
             boost::asio::io_context ioContext;
             Server<CryptoPacket> server(consoleParams, ioContext);

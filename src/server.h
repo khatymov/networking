@@ -7,10 +7,12 @@
 
 #include "pch.h"
 
-
-#include "session.h"
 #include "my_packet.h"
+#include "connection.h"
 #include "consoleParams.h"
+#include "defs.h"
+#include "my_packet.h"
+#include "thread_safe_queue.h"
 
 namespace network {
 
@@ -32,9 +34,6 @@ public:
 protected:
     io_context ioContext_;
     ip::tcp::acceptor acceptor_;
-    std::vector<std::shared_ptr<ThreadSafeQueue<T>>> tsQueues;
-
-    std::shared_ptr<Session<T>> session;
 };
 
 //create acceptor
@@ -42,13 +41,6 @@ template <typename T>
 Server<T>::Server(const ConsoleParams& params, boost::asio::io_context& ioContext)
     : acceptor_(ioContext, tcp::endpoint(make_address(params.ip.data()), params.port)) {
     spdlog::info("Server started with ip and port: [{}:{}]", params.ip.data(), params.port);
-
-    tsQueues = {std::make_shared<ThreadSafeQueue<T>>(true) // <- Connection
-        ,std::make_shared<ThreadSafeQueue<T>>(false) // <- Decryptor
-        ,std::make_shared<ThreadSafeQueue<T>>(false) // <- FileWriter
-    };
-
-    session = std::make_shared<Session<T>>(tsQueues);
 }
 
 template <typename T>
@@ -57,13 +49,14 @@ void Server<T>::handleConnections() {
     acceptor_.async_accept([this](boost::system::error_code errorCode, tcp::socket socket){
         if (!errorCode) {
             spdlog::info("New connection accepted");
-            std::make_shared<Connection<T>>(Mode::Server, std::move(socket), tsQueues[0], tsQueues[1])->run();
-
+            std::vector<std::shared_ptr<ThreadSafeQueue<T>>> tsQueues = {std::make_shared<ThreadSafeQueue<T>>(true) // <- Connection
+                ,std::make_shared<ThreadSafeQueue<T>>(false) // <- Decryptor
+                ,std::make_shared<ThreadSafeQueue<T>>(false) // <- FileWriter
+            };
+            std::make_shared<Connection<T>>(Mode::Server, std::move(socket), std::move(tsQueues), tsQueues[0], tsQueues[1])->run();
         } else {
             spdlog::error("Error has occurred during acceptance: {}", errorCode.message());
         }
-
-        session->handle();
 
         handleConnections();
     });

@@ -7,7 +7,6 @@
 
 #include "pch.h"
 
-#include "connection.h"
 #include "file_writer.h"
 #include "decryptor.h"
 
@@ -24,14 +23,9 @@ public:
     Session(std::vector<std::shared_ptr<ThreadSafeQueue<T>>>& tsQueues_);
 
     ~Session();
-//    Session(boost::asio::ip::tcp::socket socket);
 
     void handle();
-
 protected:
-
-
-    std::shared_ptr<Connection<T>> connection_;
     std::unique_ptr<Decryptor<T>> decryptor_;
     std::unique_ptr<FileWriter<T>> fileWriter_;
     std::vector<std::thread> threads;
@@ -45,28 +39,12 @@ Session<T>::~Session() {
 
 template <typename T>
 Session<T>::Session(std::vector<std::shared_ptr<ThreadSafeQueue<T>>>& tsQueues_) {
-//    Session<T>::Session(boost::asio::ip::tcp::socket socket) {
-    // queues should the same number as number of components
-    // one queue is primary ~ all memory for packets allocates in that queue
-//    tsQueues_ = {std::make_shared<ThreadSafeQueue<T>>(true) // <- Connection
-//                ,std::make_shared<ThreadSafeQueue<T>>(false) // <- Decryptor
-//                ,std::make_shared<ThreadSafeQueue<T>>(false) // <- FileWriter
-//    };
-
-    // Connection is entry point.
-    // All works starts from reading from socket and then send it to the next component
-
     decryptor_ = std::make_unique<Decryptor<T>>(tsQueues_[1], tsQueues_[2]);
     fileWriter_ = std::make_unique<FileWriter<T>>(tsQueues_[2], tsQueues_[0]);
 }
 
 template <typename T>
 void Session<T>::handle() {
-
-//    threads.emplace_back([connection = connection_](){
-//
-//    });
-
     threads.emplace_back([decryptor = std::move(decryptor_)](){
         while (not decryptor->isDone()) {
             decryptor->waitNextData();
@@ -84,12 +62,6 @@ void Session<T>::handle() {
         }
         spdlog::debug("fileWriter->isDone()");
     });
-
-//    spdlog::debug("Connection begin");
-//    std::make_shared<Connection<T>>(Mode::Server, std::move(socket), tsQueues_[0], tsQueues_[1])->run();
-//    spdlog::debug("Connection end");
-
-
 }
 
 }  // network

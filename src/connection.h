@@ -10,12 +10,18 @@
 #include "defs.h"
 #include "data_processor_interface.h"
 #include "my_packet.h"
+#include "session.h"
 
 namespace network {
+
 // main goal for this class is to get/send packet from/to client
 // DataProcessor is base class with implemented 2 functions:
     // waitNextData - wait available data for current queue (some other component should give it to us)
     // notifyComplete - give data that we got in processDataImpl to the next component
+
+// Connection is entry point for server.
+// All works starts from reading from socket and then send it to the next component
+
 template <typename DataType>
 class Connection: public std::enable_shared_from_this<Connection<DataType>>, public DataProcessor<Connection<DataType>, DataType> {
     Connection(const Connection&) = delete;
@@ -26,6 +32,7 @@ public:
     // to start communicate we need socket
     explicit Connection(const Mode mode,
                         boost::asio::ip::tcp::socket socket,
+                        std::vector<std::shared_ptr<ThreadSafeQueue<DataType>>> tsQueues_, // I know, it's not cool
                         std::shared_ptr<ThreadSafeQueue<DataType>> currentQueue,
                         std::shared_ptr<ThreadSafeQueue<DataType>> nextQueue);
 
@@ -57,7 +64,24 @@ public:
 
 protected:
     boost::asio::ip::tcp::socket socket_;
+
+    std::shared_ptr<Session<DataType>> session;
 };
+
+template <typename DataType>
+Connection<DataType>::Connection(const Mode mode,
+                                 boost::asio::ip::tcp::socket socket,
+                                 std::vector<std::shared_ptr<ThreadSafeQueue<DataType>>> tsQueues_,
+                                 std::shared_ptr<ThreadSafeQueue<DataType>> currentQueue,
+                                 std::shared_ptr<ThreadSafeQueue<DataType>> nextQueue)
+    :DataProcessor<Connection<DataType>, DataType>(currentQueue,nextQueue)
+      ,socket_(std::move(socket))
+      ,ackPackPtr(std::make_unique<DataType>(ackPacket))
+      ,nackPackPtr(std::make_unique<DataType>(nackPacket))
+      ,session(std::make_shared<Session<DataType>>(tsQueues_)){
+    session->handle();
+}
+
 
 template <typename DataType>
 Connection<DataType>::~Connection() {
@@ -138,64 +162,6 @@ void Connection<DataType>::writeHead() {
 //
 //}
 
-template <typename DataType>
-Connection<DataType>::Connection(const Mode mode,
-                                 boost::asio::ip::tcp::socket socket,
-                                 std::shared_ptr<ThreadSafeQueue<DataType>> currentQueue,
-                                 std::shared_ptr<ThreadSafeQueue<DataType>> nextQueue)
-    :DataProcessor<Connection<DataType>, DataType>(currentQueue,nextQueue)
-    ,socket_(std::move(socket))
-    ,ackPackPtr(std::make_unique<DataType>(ackPacket))
-    ,nackPackPtr(std::make_unique<DataType>(nackPacket)){
-
-    if (mode == Mode::Server) {
-        handler = [&](boost::asio::ip::tcp::socket& socket,
-                      std::unique_ptr<DataType>& data) {
-
-            boost::system::error_code errorCode;
-
-            if (Connection<DataType>::read(socket, data, errorCode)) {
-                // we got the package - send Acknowledgment Packet
-                Connection<DataType>::write(socket, ackPackPtr, errorCode);
-            } else {
-                Connection<DataType>::write(socket, nackPackPtr, errorCode);
-            }
-
-            if (this->data_->header.type == Header::Type::Exit) {
-                this->isProcessDone_ = true;
-            }
-
-            if (errorCode) {
-                throw boost::system::system_error(errorCode);
-            }
-        };
-    } else {
-        handler = [&](boost::asio::ip::tcp::socket& socket,
-                      std::unique_ptr<DataType>& data) {
-
-            boost::system::error_code errorCode;
-            if (this->data_->header.type == Header::Type::Exit) {
-                this->isProcessDone_ = true;
-            }
-
-            if (not Connection<DataType>::write(socket, data, errorCode)) {
-                spdlog::error("Client can't send data");
-            }
-
-            if (not Connection<DataType>::read(socket, data, errorCode)) {
-                spdlog::error("Client didn't get Acknowledgment Packet");
-            }
-
-            if (data->header.type == Header::Type::Nack) {
-                spdlog::error("Client got Nack Packet");
-            }
-
-            if (errorCode) {
-                throw boost::system::system_error(errorCode);
-            }
-        };
-    }
-}
 
 template <typename DataType>
 void Connection<DataType>::processDataImpl() {

@@ -6,7 +6,7 @@
 #define NETWORKING_FILE_WRITER_H
 
 #include "data_processor_interface.h"
-
+#include "my_packet.h"
 #include "hash_calculator.h"
 
 namespace network {
