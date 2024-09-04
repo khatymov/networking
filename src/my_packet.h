@@ -8,7 +8,7 @@
 #include "pch.h"
 
 // should be at least 64 bytes, because of hash size
-#define PACKET_DATA_SIZE 128
+#define PACKET_DATA_SIZE 4096
 
 namespace network {
 struct Header {
