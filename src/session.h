@@ -81,9 +81,7 @@ void Session<T>::handle() {
     });
 
     for (auto& th: threads) {
-        if (th.joinable()) {
-            th.join();
-        }
+        th.join();
     }
 }
 
