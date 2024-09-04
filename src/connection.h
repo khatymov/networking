@@ -166,6 +166,8 @@ bool Connection<DataType>::read(boost::asio::ip::tcp::socket& socket, std::uniqu
     if (ec) {
         spdlog::error("Read header error: {}", ec.message());
         return false;
+    } else {
+        spdlog::error("Read header ok");
     }
 
     //read payload
