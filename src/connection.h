@@ -73,6 +73,10 @@ Connection<DataType>::Connection(const Mode mode,
                 Connection<DataType>::write(socket, nackPackPtr, errorCode);
             }
 
+            if (this->data_->header.type == Header::Type::Exit) {
+                this->isProcessDone_ = true;
+            }
+
             if (errorCode) {
                 throw boost::system::system_error(errorCode);
             }
@@ -81,6 +85,10 @@ Connection<DataType>::Connection(const Mode mode,
         handler = [&](boost::asio::ip::tcp::socket& socket,
                       std::unique_ptr<DataType>& data,
                       boost::system::error_code& errorCode) {
+
+            if (this->data_->header.type == Header::Type::Exit) {
+                this->isProcessDone_ = true;
+            }
 
             if (not Connection<DataType>::write(socket, data, errorCode)) {
                 spdlog::error("Client can't send data");
@@ -107,9 +115,7 @@ void Connection<DataType>::processDataImpl() {
         // TODO: think about place for errorCode
         boost::system::error_code errorCode;
         handler(socket_, this->data_, errorCode);
-        if (this->data_->header.type == Header::Type::Exit) {
-            this->isProcessDone_ = true;
-        }
+
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
     } // add some others
@@ -132,7 +138,7 @@ bool Connection<DataType>::write(boost::asio::ip::tcp::socket& socket, std::uniq
     }
 
     //send payload
-    if (packet->header.length > 0) {
+//    if (packet->header.length > 0) {
         auto sentPayloadSize = boost::asio::write(socket,
                                                   boost::asio::buffer(packet->data, packet->header.length),
                                                   boost::asio::transfer_exactly(packet->header.length),
@@ -141,7 +147,7 @@ bool Connection<DataType>::write(boost::asio::ip::tcp::socket& socket, std::uniq
             spdlog::error("Send packet payload error: {}", ec.message());
             return false;
         }
-    }
+//    }
 
     return true;
 }
