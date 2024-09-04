@@ -67,17 +67,44 @@ public:
     }
 };
 
-// Connection
 
-inline std::unique_ptr<MyPacket<char>> getPacketWithFileData() {
-    std::unique_ptr<MyPacket<char>> packetWithFileData = std::make_unique<MyPacket<char>>();
+template <typename DataType>
+class PacketCollectorMock: public DataProcessor<PacketCollectorMock<DataType>, DataType> {
+public:
+    PacketCollectorMock(std::shared_ptr<ThreadSafeQueue<DataType>> currentQueue,
+                        std::shared_ptr<ThreadSafeQueue<DataType>> nextQueue)
+        : DataProcessor<PacketCollectorMock<DataType>, DataType>(currentQueue, nextQueue) {}
+
+    void collect() {
+        if (this->data_->header.type == Header::Type::FileData)
+            dataVec.push_back(std::make_unique<DataType>(DataType{this->data_->header, this->data_->data}));
+        if (this->data_->header.type == Header::Type::Exit) {
+            this->isProcessDone_ = true;
+        }
+    }
+
+    std::vector<unique_ptr<DataType>> dataVec;
+};
+
+// Connection
+template <typename T>
+inline std::unique_ptr<T> getPacketWithFileData(char ch) {
+    std::unique_ptr<T> packetWithFileData = std::make_unique<T>();
 
     packetWithFileData->header.type = Header::Type::FileData;
     packetWithFileData->header.length = 1;
-    packetWithFileData->data[0] = 'a';
+    packetWithFileData->data[0] = ch;
 
     return std::move(packetWithFileData);
 };
+template <typename T>
+std::vector<std::unique_ptr<T>> getAlphabetPacks() {
+    std::vector<std::unique_ptr<T>> res;
+    for (char letter = 'a'; letter <= 'z'; letter++) {
+        res.push_back(getPacketWithFileData<T>(letter));
+    }
+    return res;
+}
 
 // 4. test processDataImpl()
 // a. read test
@@ -106,7 +133,7 @@ public:
     void start() {
         boost::system::error_code errorCode;
         socket_.connect(endpoint_, errorCode);
-        auto packetWithFileData = getPacketWithFileData();
+        auto packetWithFileData = getPacketWithFileData<MyPacket<char>>('a');
         EXPECT_TRUE(Connection<T>::write(socket_, packetWithFileData, errorCode));
         EXPECT_TRUE(Connection<T>::read(socket_, packetWithFileData, errorCode));
         EXPECT_EQ(packetWithFileData->header.type, Connection<T>::ackPacket.header.type);
@@ -149,7 +176,7 @@ struct DummyServer {
         connectionMock.processData();
         // get result for verification
         auto resPacket = connectionMock.getData();
-        auto expectedPacket = getPacketWithFileData();
+        auto expectedPacket = getPacketWithFileData<MyPacket<char>>('a');
 
         EXPECT_EQ(resPacket->header.type, expectedPacket->header.type);
         EXPECT_EQ(resPacket->header.length, expectedPacket->header.length);
