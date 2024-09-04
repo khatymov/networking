@@ -17,7 +17,8 @@ public:
     explicit DataProcessor(std::shared_ptr<ThreadSafeQueue<T>>& currentQueue,
                             std::shared_ptr<ThreadSafeQueue<T>>& nextQueue)
         :currentQueue_(currentQueue),
-         nextQueue_(nextQueue) {}
+         nextQueue_(nextQueue),
+         tsStart_(std::chrono::system_clock::now()){}
 
     // wait data from current queue
     void waitNextData();
@@ -34,16 +35,24 @@ protected:
     // this flag is a sign that component is finished its work
     // flag value should be changes in processData() in child class
     bool isProcessDone_ = false;
-};
 
+    std::chrono::time_point<std::chrono::system_clock> tsStart_;
+};
+//TODO delete
 template <typename Derived, typename T>
 void DataProcessor<Derived, T>::waitNextData() {
     // while data
     while ((data_ = currentQueue_->get()) == nullptr) {
+        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - tsStart_);
+        if (duration.count() > 100) {
+//            std::cerr << "Wait for too long" << std::endl;
+            throw std::runtime_error("Wait for too long");
+        }
         std::this_thread::yield();
         continue;
     }
 
+    tsStart_ = std::chrono::system_clock::now();
     if (data_ == nullptr) {
         throw std::logic_error("Data ptr can't be null");
     }
