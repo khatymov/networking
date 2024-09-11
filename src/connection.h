@@ -30,11 +30,8 @@ class Connection: public std::enable_shared_from_this<Connection<DataType>>, pub
     Connection& operator = (Connection&&) = delete;
 public:
     // to start communicate we need socket
-    explicit Connection(const Mode mode,
-                        boost::asio::ip::tcp::socket socket,
-                        std::vector<std::shared_ptr<ThreadSafeQueue<DataType>>> tsQueues_, // I know, it's not cool
-                        std::shared_ptr<ThreadSafeQueue<DataType>> currentQueue,
-                        std::shared_ptr<ThreadSafeQueue<DataType>> nextQueue);
+    explicit Connection(const Mode mode, boost::asio::ip::tcp::socket socket, const std::pair<uint, uint>& connectionIndexes,
+                        std::vector<std::shared_ptr<ThreadSafeQueue<DataType>>> tsQueues);
 
     void processDataImpl();
 
@@ -43,7 +40,7 @@ public:
     [[maybe_unused]] static bool read(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& data, boost::system::error_code& ec);
     [[maybe_unused]] static bool write(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& data, boost::system::error_code& ec);
 
-    ~Connection();
+    ~Connection() = default;
     void run();
 
     void readHead();
@@ -69,23 +66,15 @@ protected:
 };
 
 template <typename DataType>
-Connection<DataType>::Connection(const Mode mode,
-                                 boost::asio::ip::tcp::socket socket,
-                                 std::vector<std::shared_ptr<ThreadSafeQueue<DataType>>> tsQueues_,
-                                 std::shared_ptr<ThreadSafeQueue<DataType>> currentQueue,
-                                 std::shared_ptr<ThreadSafeQueue<DataType>> nextQueue)
-    :DataProcessor<Connection<DataType>, DataType>(currentQueue,nextQueue)
+Connection<DataType>::Connection(const Mode mode, boost::asio::ip::tcp::socket socket,
+                                 const std::pair<uint, uint>& connectionIndexes,
+                                 std::vector<std::shared_ptr<ThreadSafeQueue<DataType>>> tsQueues)
+    :DataProcessor<Connection<DataType>, DataType>(tsQueues[connectionIndexes.first], tsQueues[connectionIndexes.second])
       ,socket_(std::move(socket))
       ,ackPackPtr(std::make_unique<DataType>(ackPacket))
       ,nackPackPtr(std::make_unique<DataType>(nackPacket))
-      ,session(std::make_shared<Session<DataType>>(tsQueues_)){
+      ,session(std::make_shared<Session<DataType>>(tsQueues)){
     session->handle();
-}
-
-
-template <typename DataType>
-Connection<DataType>::~Connection() {
-    spdlog::debug("~Connection()");
 }
 
 template <typename DataType>
