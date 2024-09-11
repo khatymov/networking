@@ -11,6 +11,8 @@
 
 namespace network {
 
+const std::string FileWriterKey("FileWriter");
+
 template <typename DataType>
 class FileWriter: public DataProcessor<FileWriter<DataType>, DataType> {
     FileWriter(const FileWriter&) = delete;

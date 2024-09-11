@@ -13,6 +13,8 @@ namespace network {
 
 using namespace CryptoPP;
 
+const std::string EncryptorKey("Encryptor");
+
 template <typename DataType>
 class Encryptor: public DataProcessor<Encryptor<DataType>, DataType> {
     Encryptor(const Encryptor&) = delete;

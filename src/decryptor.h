@@ -12,6 +12,8 @@
 namespace network {
 using namespace CryptoPP;
 
+const std::string DecryptorKey("Decryptor");
+
 // purpose of this class is to get encrypted data -> decrypt -> set to the next queue decrypted packet
 template <typename DataType>
 class Decryptor: public DataProcessor<Decryptor<DataType>, DataType> {

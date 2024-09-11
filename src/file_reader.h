@@ -11,6 +11,8 @@
 
 namespace network {
 
+const std::string FileReaderKey("FileReader");
+
 template <typename DataType>
 class FileReader: public DataProcessor<FileReader<DataType>, DataType> {
     FileReader(const FileReader&) = delete;
