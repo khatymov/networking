@@ -27,7 +27,7 @@ class Server {
     Server& operator=(Server&&) = delete;
 public:
     // create acceptor
-    explicit Server(const ConsoleParams& params, boost::asio::io_context& ioContext);
+    explicit Server(const ConsoleParams& params);
     // start to accept new connection(clients) and send socket to client handler
     void handleConnections();
 
@@ -38,8 +38,8 @@ protected:
 
 //create acceptor
 template <typename T>
-Server<T>::Server(const ConsoleParams& params, boost::asio::io_context& ioContext)
-    : acceptor_(ioContext, tcp::endpoint(make_address(params.ip.data()), params.port)) {
+Server<T>::Server(const ConsoleParams& params)
+    : acceptor_(ioContext_, tcp::endpoint(make_address(params.ip.data()), params.port)) {
     spdlog::info("Server started with ip and port: [{}:{}]", params.ip.data(), params.port);
 }
 
@@ -61,7 +61,7 @@ void Server<T>::handleConnections() {
         handleConnections();
     });
 
-
+    ioContext_.run();
 }
 
 } // namespace network
