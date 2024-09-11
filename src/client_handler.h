@@ -55,17 +55,25 @@ ClientHandler<T>::ClientHandler(const ConsoleParams& params)
                 ,std::make_shared<ThreadSafeQueue<T>>(false) // <- Connection
                  };
 
-    // reader is entry point. All works starts from reading from file and then send it to connection component
-    fileReader_ = std::make_unique<FileReader<T>>(params.targetFile.data(), tsQueues_[0], tsQueues_[1]);
+    NamedQueue<T> namedQueues = {{FileReaderKey, {tsQueues_[0], tsQueues_[1]}},
+                                 {EncryptorKey,  {tsQueues_[1], tsQueues_[2]}},
+                                 {ConnectionKey, {tsQueues_[2], tsQueues_[0]}}};
 
-    encryptor_ = std::make_unique<Encryptor<T>>(tsQueues_[1], tsQueues_[2]);
+    // reader is entry point. All works starts from reading from file and then send it to connection component
+    fileReader_ = std::make_unique<FileReader<T>>(params.targetFile.data(),
+                                                  namedQueues[FileReaderKey].first,
+                                                  namedQueues[FileReaderKey].second);
+
+    encryptor_ = std::make_unique<Encryptor<T>>(namedQueues[EncryptorKey].first, namedQueues[EncryptorKey].second);
 
     boost::system::error_code errorCode;
     socket_.connect(endpoint_, errorCode);
     if (errorCode) {
         throw std::runtime_error("Socket could not connect to the server");
     }
-    connection_ = std::make_shared<Connection<T>>(Mode::Client, std::move(socket_), tsQueues_[2], tsQueues_[0]);
+    connection_ = std::make_shared<Connection<T>>(std::move(socket_),
+                                                  namedQueues[ConnectionKey].first,
+                                                  namedQueues[ConnectionKey].second);
 }
 
 template <typename T>
