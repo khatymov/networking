@@ -1,7 +1,0 @@
-# Cryptographer
-
----
-
-** Description. **
-
----

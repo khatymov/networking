@@ -10,31 +10,27 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
 
 find_package(GTest REQUIRED)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../app/file/file.cmake)
+# number of packages to test
+add_definitions(-DQUEUE_DATA_NUM=6)
+add_definitions(-DTEST)
+add_definitions(-DDEBUG)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../app/packet/packet.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/packet/packet_test.cmake)
+include_directories(../src)
 
-#include(${CMAKE_CURRENT_LIST_DIR}/../app/connection/connection.cmake)
-#include(${CMAKE_CURRENT_LIST_DIR}/connection/connection_test.cmake)
-
-include(${CMAKE_CURRENT_LIST_DIR}/../app/cryptographer/cryptographer.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/encryption/encryption_test.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/network/network_test.cmake)
 
 add_executable(
         ${PROJECT_NAME}
         test.cpp
-        ${PACKET}
-        ${PACKET_TEST}
-#        ${CONNECTION}
-#        ${CONNECTION_TEST}
-        ${FILE}
-        ${CRYPTOGRAPHER}
-        ${ENCRYPTION_TEST}
+        ${NETWORK_TEST}
 )
+
+# Precompiled header
+target_precompile_headers(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../src/pch.h)
 
 target_link_libraries(
         ${PROJECT_NAME}
+        network_lib
         gtest
         boost::boost
         -lcrypto
@@ -44,3 +40,5 @@ target_link_libraries(
 enable_testing()
 
 add_test(run_unit_tests ${PROJECT_NAME})
+
+target_compile_definitions(run_unit_tests PUBLIC PATH_TO_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/assets/")

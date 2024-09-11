@@ -1,7 +1,0 @@
-# SocketMessenger
-
----
-
-** Description. **
-
----
