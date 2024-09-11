@@ -79,6 +79,12 @@ void ThreadSafeQueue<T>::set(std::unique_ptr<T>&& data) {
     queue_.push(std::move(data));
 }
 
+template <typename T>
+using QueuePtr = std::shared_ptr<ThreadSafeQueue<T>>;
+
+template <typename T>
+using NamedQueue = std::unordered_map<std::string, std::pair<QueuePtr<T>, QueuePtr<T>>>;
+
 } // namespace network
 
 #endif  // NETWORKING_THREAD_SAFE_QUEUE_H
