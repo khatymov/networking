@@ -64,6 +64,7 @@ void FileReader<DataType>::setFileName() {
     this->data_->header.type = Header::Type::FileName;
     this->data_->header.length = fileName_.size();
     memcpy(this->data_->data.data(), fileName_.c_str(), fileName_.size());
+    spdlog::info("Read file: {}", fileName_);
 }
 
 template <typename DataType>

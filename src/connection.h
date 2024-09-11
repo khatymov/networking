@@ -77,9 +77,9 @@ template <typename DataType>
 Connection<DataType>::Connection(boost::asio::ip::tcp::socket socket,
                                  NamedQueue<DataType> namedQueues)
     :DataProcessor<Connection<DataType>, DataType>(namedQueues[ConnectionKey].first, namedQueues[ConnectionKey].second)
-      ,socket_(std::move(socket))
-      ,session(std::make_shared<Session<DataType>>(namedQueues))
-      ,mode_(Mode::Server) {
+    ,socket_(std::move(socket))
+    ,session(std::make_shared<Session<DataType>>(namedQueues))
+    ,mode_(Mode::Server) {
     session->handle();
 }
 
@@ -91,66 +91,55 @@ void Connection<DataType>::run() {
 
 template <typename DataType>
 void Connection<DataType>::readHead() {
-    //????
     this->waitNextData();
     auto self(this->shared_from_this());
     boost::asio::async_read(socket_, boost::asio::buffer(&this->data_->header, sizeof(this->data_->header)),
-                            //    boost::asio::async_read(socket_, boost::asio::buffer(&packet.header, sizeof(packet.header)),
-                            [this, self] (boost::system::error_code errorCode, std::size_t length) {
-//                                spdlog::debug("Got pack with len: {} or {}", length, this->data_->header.length);
-                                if (!errorCode) {
-                                    if (this->data_->header.type == Header::Type::Exit) {
-                                        this->isProcessDone_ = true;
-                                    }
+    [this, self] (boost::system::error_code errorCode, std::size_t length) {
+        if (!errorCode) {
+            if (this->data_->header.type == Header::Type::Exit) {
+                this->isProcessDone_ = true;
+            }
 
-                                    if (this->data_->header.length > 0) {
-                                        readPayload();
-                                    } else {
-                                        //!!! Be cautious
-                                        //                                           Connection<DataType>::write(socket_, ackPackPtr, errorCode);
-                                    }
-                                } else {
-                                    spdlog::error("error header: {}", errorCode.message());
-                                    socket_.close();
-                                }
-                            });
+            if (this->data_->header.length > 0) {
+                readPayload();
+            }
+        } else {
+            spdlog::error("error header: {}", errorCode.message());
+            socket_.close();
+        }
+    });
 }
 
 template <typename DataType>
 void Connection<DataType>::readPayload() {
     auto self(this->shared_from_this());
     boost::asio::async_read(socket_, boost::asio::buffer(&this->data_->data, this->data_->header.length),
-                            [this, self] (boost::system::error_code errorCode, std::size_t length) {
-                                if (!errorCode) {
-                                    if (this->data_->header.length > 0) {
-                                        writeHead();
-                                        //                                        Connection<DataType>::write(socket_, ackPackPtr, errorCode);
-                                    } else {
-                                        //!!! Be cautious
-                                    }
-                                } else {
-                                    //                                    Connection::write(socket_, nackPackPtr, errorCode);
-                                    spdlog::error("error header: {}", errorCode.message());
-                                    socket_.close();
-                                }
-                            });
+    [this, self] (boost::system::error_code errorCode, std::size_t length) {
+        if (!errorCode) {
+            if (this->data_->header.length > 0) {
+                writeHead();
+            }
+        } else {
+            spdlog::error("error header: {}", errorCode.message());
+            socket_.close();
+        }
+    });
 }
 
 template <typename DataType>
 void Connection<DataType>::writeHead() {
     auto self(this->shared_from_this());
     boost::asio::async_write(socket_, boost::asio::buffer(&ackPackPtr->header, sizeof(ackPackPtr->header)),
-                             [this, self](boost::system::error_code errorCode, std::size_t /*length*/) {
-                                 if (!errorCode) {
-                                     this->notifyComplete();
-                                     //!!! Be cautious
-                                     if (not this->isDone()) {
-                                         readHead();
-                                     }
-                                 } else {
-                                     spdlog::error("error send header: {}", errorCode.message());
-                                 }
-                             });
+     [this, self](boost::system::error_code errorCode, std::size_t /*length*/) {
+         if (!errorCode) {
+             this->notifyComplete();
+             if (not this->isDone()) {
+                 readHead();
+             }
+         } else {
+             spdlog::error("error send header: {}", errorCode.message());
+         }
+     });
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -163,7 +152,9 @@ Connection<DataType>::Connection(boost::asio::ip::tcp::socket socket,
                                  QueuePtr<DataType> nextQueue)
     :DataProcessor<Connection<DataType>, DataType>(currentQueue, nextQueue)
       ,socket_(std::move(socket))
-      ,mode_(Mode::Client) { }
+      ,mode_(Mode::Client) {
+
+}
 
 template <typename DataType>
 void Connection<DataType>::processDataImpl() {
@@ -172,6 +163,7 @@ void Connection<DataType>::processDataImpl() {
         boost::system::error_code errorCode;
         if (this->data_->header.type == Header::Type::Exit) {
             this->isProcessDone_ = true;
+            spdlog::info("Client sends exit packet.");
         }
 
         if (not Connection<DataType>::write(socket_, this->data_, errorCode)) {
@@ -195,10 +187,6 @@ void Connection<DataType>::processDataImpl() {
         std::cerr << e.what() << std::endl;
     } // add some others
 }
-
-
-
-
 
 // TODO read write should work with any type: complex structures, stl containers or boost buffer
 template <typename DataType>
@@ -227,7 +215,6 @@ bool Connection<DataType>::write(boost::asio::ip::tcp::socket& socket, std::uniq
     return true;
 }
 
-// TODO set timeout
 template <typename DataType>
 bool Connection<DataType>::read(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& packet, boost::system::error_code& ec) {
     auto headerSize = boost::asio::read(socket,
@@ -242,7 +229,8 @@ bool Connection<DataType>::read(boost::asio::ip::tcp::socket& socket, std::uniqu
     //read payload
     if (packet->header.length > 0) {
         auto DataSize =
-            boost::asio::read(socket, boost::asio::buffer(packet->data, packet->header.length),
+            boost::asio::read(socket,
+                              boost::asio::buffer(packet->data, packet->header.length),
                               boost::asio::transfer_exactly(packet->header.length),
                               ec);
 

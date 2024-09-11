@@ -43,11 +43,10 @@ FileWriter<DataType>::FileWriter(std::shared_ptr<ThreadSafeQueue<DataType>> curQ
 
 template <typename DataType>
 FileWriter<DataType>::~FileWriter() {
-    //TODO fix
-//    if (file_ != nullptr) {
-//        std::fclose(file_);
-//        file_ = nullptr;
-//    }
+    if (file_ != nullptr) {
+        std::fclose(file_);
+        file_ = nullptr;
+    }
 }
 
 template <typename DataType>
@@ -66,9 +65,9 @@ void FileWriter<DataType>::processDataImpl() {
 #endif
                 fileName = getUniqueName(fileName);
             }
-#ifdef DEBUG
-            spdlog::debug("Open a file:  {}", fileName);
-#endif
+
+            spdlog::info("Start getting the file:  {}", fileName);
+
             fileName_ = fileName;
             file_ = std::fopen(fileName.c_str(), "w");
             break;
@@ -98,9 +97,8 @@ void FileWriter<DataType>::processDataImpl() {
             std::fclose(file_);
             file_ = nullptr;
 
-#ifdef DEBUG
-            spdlog::debug("Compare our and client's hash");
-#endif
+            spdlog::info("Client's file hash and our are the same.");
+
             auto curHash = HashCalculator::getFileHash(fileName_);
             // Client's file hash
             auto clientFileHash = std::string(this->data_->data.begin(),
