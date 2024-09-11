@@ -10,6 +10,7 @@
 #include "connection.h"
 #include "file_reader.h"
 #include "encryptor.h"
+#include "timer.h"
 
 namespace network {
 
@@ -32,6 +33,8 @@ protected:
     boost::asio::ip::tcp::endpoint endpoint_;
     //! \brief socket allows us to connect to the server
     boost::asio::ip::tcp::socket socket_;
+    //! \brief calculate time of handling
+    Timer timer_;
 
     std::vector<std::shared_ptr<ThreadSafeQueue<T>>> tsQueues_;
     std::unique_ptr<FileReader<T>> fileReader_;
