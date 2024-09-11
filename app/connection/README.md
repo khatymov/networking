@@ -1,7 +1,0 @@
-# Connection
-
----
-
-** Description. **
-
----

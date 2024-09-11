@@ -1,7 +1,0 @@
-# FileInterface
-
----
-
-** Description. **
-
----

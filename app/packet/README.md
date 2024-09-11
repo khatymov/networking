@@ -1,7 +1,0 @@
-# Packet
-
----
-
-** Description. **
-
----
