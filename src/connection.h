@@ -22,6 +22,8 @@ namespace network {
 // Connection is entry point for server.
 // All works starts from reading from socket and then send it to the next component
 
+const std::string ConnectionKey("Connection");
+
 template <typename DataType>
 class Connection: public std::enable_shared_from_this<Connection<DataType>>, public DataProcessor<Connection<DataType>, DataType> {
     Connection(const Connection&) = delete;
@@ -29,56 +31,61 @@ class Connection: public std::enable_shared_from_this<Connection<DataType>>, pub
     Connection& operator = (const Connection&) = delete;
     Connection& operator = (Connection&&) = delete;
 public:
-    // to start communicate we need socket
-    explicit Connection(const Mode mode, boost::asio::ip::tcp::socket socket, const std::pair<uint, uint>& connectionIndexes,
-                        std::vector<std::shared_ptr<ThreadSafeQueue<DataType>>> tsQueues);
+    // for server
+    explicit Connection(boost::asio::ip::tcp::socket socket,
+                        NamedQueue<DataType> namedQueues);
 
+    // for client
+    explicit Connection(boost::asio::ip::tcp::socket socket,
+                        QueuePtr<DataType> currentQueue,
+                        QueuePtr<DataType> nextQueue);
+
+    ~Connection() = default;
+
+    // Client functions
     void processDataImpl();
-
     // read from/to socket
     // TODO: make them async
     [[maybe_unused]] static bool read(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& data, boost::system::error_code& ec);
     [[maybe_unused]] static bool write(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& data, boost::system::error_code& ec);
 
-    ~Connection() = default;
+    // Server functions
+    // run async read/write via socket (recursive call of functions below: [readHead-> readPayload-> writeHead(ack)-> readHead->..]
     void run();
-
     void readHead();
     void readPayload();
-
     void writeHead();
-//    void writePayload();
-
-    std::function<void(boost::asio::ip::tcp::socket& socket,
-                       std::unique_ptr<DataType>& data)> handler;
 
     // to be created once and reuse it
-    // TODO move somewhere else
-    static constexpr DataType ackPacket{{Header::Type::Ack}};
-    static constexpr DataType nackPacket{{Header::Type::Nack}};
-    std::unique_ptr<DataType> ackPackPtr;
-    std::unique_ptr<DataType> nackPackPtr;
+    std::unique_ptr<DataType> ackPackPtr = std::make_unique<DataType>(DataType({Header::Type::Ack}));
+    std::unique_ptr<DataType> nackPackPtr = std::make_unique<DataType>(DataType({Header::Type::Nack}));
 
 protected:
+    // socket for reading/writing
     boost::asio::ip::tcp::socket socket_;
-
+    // Session uses for server and includes other components, like decryptor and file writer
     std::shared_ptr<Session<DataType>> session;
+    // define current mode
+    const Mode mode_;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+////////////// SERVER FUNCTIONS
+///////////////////////////////////////////////////////////////////////////////
+
 template <typename DataType>
-Connection<DataType>::Connection(const Mode mode, boost::asio::ip::tcp::socket socket,
-                                 const std::pair<uint, uint>& connectionIndexes,
-                                 std::vector<std::shared_ptr<ThreadSafeQueue<DataType>>> tsQueues)
-    :DataProcessor<Connection<DataType>, DataType>(tsQueues[connectionIndexes.first], tsQueues[connectionIndexes.second])
+Connection<DataType>::Connection(boost::asio::ip::tcp::socket socket,
+                                 NamedQueue<DataType> namedQueues)
+    :DataProcessor<Connection<DataType>, DataType>(namedQueues[ConnectionKey].first, namedQueues[ConnectionKey].second)
       ,socket_(std::move(socket))
-      ,ackPackPtr(std::make_unique<DataType>(ackPacket))
-      ,nackPackPtr(std::make_unique<DataType>(nackPacket))
-      ,session(std::make_shared<Session<DataType>>(tsQueues)){
+      ,session(std::make_shared<Session<DataType>>(namedQueues))
+      ,mode_(Mode::Server) {
     session->handle();
 }
 
 template <typename DataType>
 void Connection<DataType>::run() {
+    assert(mode_== Mode::Server);
     readHead();
 }
 
@@ -146,26 +153,56 @@ void Connection<DataType>::writeHead() {
                              });
 }
 
-//template <typename DataType>
-//void Connection<DataType>::writePayload() {
-//
-//}
+///////////////////////////////////////////////////////////////////////////////
+////////////// CLIENT FUNCTIONS
+///////////////////////////////////////////////////////////////////////////////
 
+template <typename DataType>
+Connection<DataType>::Connection(boost::asio::ip::tcp::socket socket,
+                                 QueuePtr<DataType> currentQueue,
+                                 QueuePtr<DataType> nextQueue)
+    :DataProcessor<Connection<DataType>, DataType>(currentQueue, nextQueue)
+      ,socket_(std::move(socket))
+      ,mode_(Mode::Client) { }
 
 template <typename DataType>
 void Connection<DataType>::processDataImpl() {
+    assert(mode_== Mode::Client);
     try {
-        handler(socket_, this->data_);
+        boost::system::error_code errorCode;
+        if (this->data_->header.type == Header::Type::Exit) {
+            this->isProcessDone_ = true;
+        }
+
+        if (not Connection<DataType>::write(socket_, this->data_, errorCode)) {
+            spdlog::error("Client can't send data");
+        }
+
+        if (not Connection<DataType>::read(socket_, this->data_, errorCode)) {
+            spdlog::error("Client didn't get Acknowledgment Packet");
+        }
+
+        if (this->data_->header.type == Header::Type::Nack) {
+            spdlog::error("Client got Nack Packet");
+        }
+
+        if (errorCode) {
+            throw boost::system::system_error(errorCode);
+        }
+    } catch (const boost::system::system_error& e) {
+        std::cerr << e.what() << std::endl;
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
     } // add some others
 }
 
+
+
+
+
 // TODO read write should work with any type: complex structures, stl containers or boost buffer
 template <typename DataType>
 bool Connection<DataType>::write(boost::asio::ip::tcp::socket& socket, std::unique_ptr<DataType>& packet, boost::system::error_code& ec) {
-    // TODO: fix
-//    auto* raw_header_ptr = reinterpret_cast<char*>(&packet->header);
     //send header
     auto sentHeaderSize = boost::asio::write(socket,
                                              boost::asio::buffer(&packet->header, sizeof(packet->header)),
@@ -216,6 +253,7 @@ bool Connection<DataType>::read(boost::asio::ip::tcp::socket& socket, std::uniqu
     }
     return true;
 }
+
 
 } // namespace network
 
