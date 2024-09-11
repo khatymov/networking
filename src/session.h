@@ -20,7 +20,7 @@ class Session: public std::enable_shared_from_this<Session<T>> {
     Session& operator = (Session&&) = delete;
 public:
 
-    Session(std::vector<std::shared_ptr<ThreadSafeQueue<T>>>& tsQueues_);
+    Session(NamedQueue<T> namedQueues);
 
     ~Session();
 
@@ -38,9 +38,9 @@ Session<T>::~Session() {
 }
 
 template <typename T>
-Session<T>::Session(std::vector<std::shared_ptr<ThreadSafeQueue<T>>>& tsQueues_) {
-    decryptor_ = std::make_unique<Decryptor<T>>(tsQueues_[1], tsQueues_[2]);
-    fileWriter_ = std::make_unique<FileWriter<T>>(tsQueues_[2], tsQueues_[0]);
+Session<T>::Session(NamedQueue<T> namedQueues) {
+    decryptor_ = std::make_unique<Decryptor<T>>(namedQueues[DecryptorKey].first, namedQueues[DecryptorKey].second);
+    fileWriter_ = std::make_unique<FileWriter<T>>(namedQueues[FileWriterKey].first, namedQueues[FileWriterKey].second);
 }
 
 template <typename T>
