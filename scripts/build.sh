@@ -23,4 +23,4 @@ cd "${build_dir}" || exit $?
 
 # Build
 cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug || exit $?
-cmake --build . --config Release || exit $?
+cmake --build . --config Debug || exit $?

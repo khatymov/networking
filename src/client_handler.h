@@ -47,8 +47,9 @@ using namespace boost::asio::ip;
 
 template <typename T>
 ClientHandler<T>::ClientHandler(const ConsoleParams& params)
-    :endpoint_{address::from_string(params.ip.data()),
-                static_cast<port_type>(params.port)}
+    :endpoint_(tcp::endpoint(
+          boost::asio::ip::make_address(params.ip.data()),
+          static_cast<port_type>(params.port)))
     ,socket_{context_} {
 
     // queues should the same number as number of components
