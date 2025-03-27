@@ -12,10 +12,10 @@
 
 ## About
 
-The essence of this project is compiling client files to the server.
+The essence of this project is copying client files to the server.
 
-[//]: # (![img.png]&#40;img/img.png&#41;)
-![img.png](img/img.png)
+
+![img.png](img/diagram.png)
 Tasks:
 - the same application could act as server and as client;
 - when it runs as a server - it accumulates all files which could be sent to it from client(s);
