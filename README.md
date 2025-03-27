@@ -4,7 +4,6 @@
 
 <p align="center">
     <img src="https://img.shields.io/appveyor/build/gruntjs/grunt" alt="build">
-    <img src="https://img.shields.io/badge/coverage-90-green" alt="Test coverage">
     <img src="https://img.shields.io/badge/Version-0.1-blue" alt="Version">
     <img src="https://img.shields.io/badge/License-GPL--3.0-orange" alt="License">
 </p>
@@ -15,8 +14,8 @@
 
 The essence of this project is compiling client files to the server.
 
+[//]: # (![img.png]&#40;img/img.png&#41;)
 ![img.png](img/img.png)
-
 Tasks:
 - the same application could act as server and as client;
 - when it runs as a server - it accumulates all files which could be sent to it from client(s);
