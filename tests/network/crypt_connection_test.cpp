@@ -43,7 +43,7 @@ void runClient() {
     boost::asio::ip::tcp::socket socket(context);
     boost::system::error_code errorCode;
     socket.connect(endpoint, errorCode);
-    auto connection = std::make_unique<Connection<CryptoPacket>>(Mode::Client, std::move(socket), tsQueues[2], tsQueues[0]);
+    auto connection = std::make_unique<Connection<CryptoPacket>>(std::move(socket), tsQueues[2], tsQueues[0]);
 
     threads.emplace_back([packetGen = std::move(packetGen)]{
         auto packs = getAlphabetPacks<CryptoPacket>();
@@ -91,7 +91,7 @@ void runServer() {
     ip::tcp::acceptor acceptor_(ioContext_, tcp::endpoint(make_address(ipDefualt), portDefualt));
     tcp::socket socket(ioContext_);
     acceptor_.accept(socket);
-    auto connection = std::make_unique<Connection<CryptoPacket>>(Mode::Server, std::move(socket), tsQueues[0], tsQueues[1]);
+    auto connection = std::make_unique<Connection<CryptoPacket>>(std::move(socket), tsQueues[0], tsQueues[1]);
     // connection
     threads.emplace_back([connection = std::move(connection)]{
         while (not connection->isDone()) {

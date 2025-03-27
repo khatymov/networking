@@ -74,7 +74,7 @@ TEST(ConnectionTest, test_ctr) {
     auto tsQueues = get2Queue<MyPacket<char>>();
     boost::asio::io_context io_context_;
     tcp::socket someSocket(io_context_);
-    EXPECT_NO_THROW(Connection<MyPacket<char>> connection(Mode::Server, std::move(someSocket), tsQueues[0], tsQueues[1]));
+    EXPECT_NO_THROW(Connection<MyPacket<char>> connection(std::move(someSocket), tsQueues[0], tsQueues[1]));
 }
 
 // TODO

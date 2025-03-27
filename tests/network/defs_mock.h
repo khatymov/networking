@@ -1,8 +1,8 @@
 #pragma once
 
-#include "encryptor.h"
-#include "decryptor.h"
 #include "connection.h"
+#include "decryptor.h"
+#include "encryptor.h"
 #include "gtest/gtest.h"
 #include "my_packet.h"
 #include "thread_safe_queue.h"
@@ -136,7 +136,6 @@ public:
         auto packetWithFileData = getPacketWithFileData<MyPacket<char>>('a');
         EXPECT_TRUE(Connection<T>::write(socket_, packetWithFileData, errorCode));
         EXPECT_TRUE(Connection<T>::read(socket_, packetWithFileData, errorCode));
-        EXPECT_EQ(packetWithFileData->header.type, Connection<T>::ackPacket.header.type);
     }
 
     //! \brief asio context handles the data transfer...
@@ -150,9 +149,8 @@ public:
 template <typename T>
 class ConnectionMock : public Connection<T> {
 public:
-    ConnectionMock(const Mode mode, boost::asio::ip::tcp::socket socket, std::shared_ptr<ThreadSafeQueue<T>> currentQueue,
-                   std::shared_ptr<ThreadSafeQueue<T>> nextQueue)
-        : Connection<T>(mode, std::move(socket), currentQueue, nextQueue){};
+    ConnectionMock(boost::asio::ip::tcp::socket socket, std::shared_ptr<ThreadSafeQueue<T>> currentQueue, std::shared_ptr<ThreadSafeQueue<T>> nextQueue)
+        : Connection<T>(std::move(socket), currentQueue, nextQueue){};
 
     void setData(std::unique_ptr<T>&& data) { this->data_ = std::move(data); }
 
@@ -169,7 +167,7 @@ struct DummyServer {
         acceptor_.accept(socket);
         // won't be used
         auto tsQueues = get2Queue<MyPacket<char>>();
-        ConnectionMock<MyPacket<char>> connectionMock(Mode::Server, std::move(socket), tsQueues[0], tsQueues[1]);
+        ConnectionMock<MyPacket<char>> connectionMock(std::move(socket), tsQueues[0], tsQueues[1]);
         // allocate memory for packet
         connectionMock.setData(std::move(make_unique<MyPacket<char>>()));
         // connection should accept data from socket
