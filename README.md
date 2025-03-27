@@ -13,14 +13,27 @@
 
 ## About
 
-You have to write a lot of code, but you don't want to waste your time creating the same thing every time. Then this cpp template for you.
+The essence of this project is compiling client files to the server.
+
+![img.png](img/img.png)
+
+Tasks:
+- the same application could act as server and as client;
+- when it runs as a server - it accumulates all files which could be sent to it from client(s);
+- client application encrypts file data after reading and before sending;  
+- server application decrypts acquired data before writing;
+---
+Flow:\
+![img.png](img/dataFlow.png)
 
 ---
 
 ## Requirements
-* C++ version: [`C++17`](https://en.cppreference.com/w/cpp/17)
+* C++ version: [`C++20`](https://en.cppreference.com/w/cpp/17)
 * Build system: [`CMake`](https://cmake.org/)
 * C++ compiler: `g++`
+* Logger: [`spdlog`](https://github.com/gabime/spdlog)
+* Cryptographic library: [`cryptopp`](http://www.cryptopp.com/)
 * Code coverage report: [`lcov`](http://ltp.sourceforge.net/coverage/lcov.php)
 * Package manager: [`Conan`](https://conan.io/downloads) or
 * Test framework: [`gtest`](https://github.com/google/googletest)
