@@ -87,6 +87,8 @@ void Decryptor<DataType>::setKey() {
         spdlog::info("Key for encryption is taken from environment variables");
 #endif
     } else {
+        // only for education purposes
+        // Bad, I know ...
         std::string hardCodedKey("5E462EA6BD40B083F5F2C4B810A07230");
         key_.Assign(reinterpret_cast<const CryptoPP::byte*>(hardCodedKey.data()),
                     hardCodedKey.size());
