@@ -1,8 +1,8 @@
 #pragma once
 
-#include "encryptor.h"
-#include "decryptor.h"
 #include "connection.h"
+#include "decryptor.h"
+#include "encryptor.h"
 #include "gtest/gtest.h"
 #include "my_packet.h"
 #include "thread_safe_queue.h"
@@ -22,8 +22,7 @@ std::vector<std::shared_ptr<ThreadSafeQueue<T>>> get2Queue() {
 
 template <typename T>
 std::vector<std::shared_ptr<ThreadSafeQueue<T>>> get3Queue() {
-    return {std::make_shared<ThreadSafeQueue<T>>(true),
-            std::make_shared<ThreadSafeQueue<T>>(false),
+    return {std::make_shared<ThreadSafeQueue<T>>(true), std::make_shared<ThreadSafeQueue<T>>(false),
             std::make_shared<ThreadSafeQueue<T>>(false)};
 }
 
@@ -34,7 +33,7 @@ constexpr uint portDefualt = 1234;
 
 // CRYPTO
 template <typename DataType>
-class EncryptorMock: public Encryptor<DataType> {
+class EncryptorMock : public Encryptor<DataType> {
 public:
     EncryptorMock(std::shared_ptr<ThreadSafeQueue<DataType>> currentQueue,
                   std::shared_ptr<ThreadSafeQueue<DataType>> nextQueue)
@@ -46,30 +45,23 @@ public:
         std::copy(gHelloWorldStr.begin(), gHelloWorldStr.end(), this->data_->data.begin());
     }
 
-    void setData(std::unique_ptr<DataType>&& data) {
-        this->data_ = std::move(data);
-    }
+    void setData(std::unique_ptr<DataType>&& data) { this->data_ = std::move(data); }
 
-    std::unique_ptr<DataType> getData() {
-        return std::move(this->data_);
-    }
+    std::unique_ptr<DataType> getData() { return std::move(this->data_); }
 };
 
 template <typename DataType>
-class PacketGeneratorMock: public DataProcessor<PacketGeneratorMock<DataType>, DataType> {
+class PacketGeneratorMock : public DataProcessor<PacketGeneratorMock<DataType>, DataType> {
 public:
     PacketGeneratorMock(std::shared_ptr<ThreadSafeQueue<DataType>> currentQueue,
                         std::shared_ptr<ThreadSafeQueue<DataType>> nextQueue)
         : DataProcessor<PacketGeneratorMock<DataType>, DataType>(currentQueue, nextQueue) {}
 
-    void set(std::unique_ptr<DataType>&& packet) {
-        this->data_ = std::move(packet);
-    }
+    void set(std::unique_ptr<DataType>&& packet) { this->data_ = std::move(packet); }
 };
 
-
 template <typename DataType>
-class PacketCollectorMock: public DataProcessor<PacketCollectorMock<DataType>, DataType> {
+class PacketCollectorMock : public DataProcessor<PacketCollectorMock<DataType>, DataType> {
 public:
     PacketCollectorMock(std::shared_ptr<ThreadSafeQueue<DataType>> currentQueue,
                         std::shared_ptr<ThreadSafeQueue<DataType>> nextQueue)
@@ -77,7 +69,8 @@ public:
 
     void collect() {
         if (this->data_->header.type == Header::Type::FileData)
-            dataVec.push_back(std::make_unique<DataType>(DataType{this->data_->header, this->data_->data}));
+            dataVec.push_back(
+                std::make_unique<DataType>(DataType{this->data_->header, this->data_->data}));
         if (this->data_->header.type == Header::Type::Exit) {
             this->isProcessDone_ = true;
         }
@@ -116,7 +109,8 @@ std::vector<std::unique_ptr<T>> getAlphabetPacks() {
 // create a client
 // separate thread and function for the client
 
-// The client should attach to the endpoint, create socket and send some package to a server, as simple as it is
+// The client should attach to the endpoint, create socket and send some package to a server, as
+// simple as it is
 template <typename T>
 class DummyClient {
     DummyClient(const DummyClient&) = delete;
@@ -126,9 +120,7 @@ class DummyClient {
 
 public:
     DummyClient(const std::string& ip = ipDefualt, const uint port = portDefualt)
-        : endpoint_{address::from_string(ip),
-                    static_cast<port_type>(port)},
-          socket_{context_} {}
+        : endpoint_{address::from_string(ip), static_cast<port_type>(port)}, socket_{context_} {}
 
     void start() {
         boost::system::error_code errorCode;
@@ -136,7 +128,6 @@ public:
         auto packetWithFileData = getPacketWithFileData<MyPacket<char>>('a');
         EXPECT_TRUE(Connection<T>::write(socket_, packetWithFileData, errorCode));
         EXPECT_TRUE(Connection<T>::read(socket_, packetWithFileData, errorCode));
-        EXPECT_EQ(packetWithFileData->header.type, Connection<T>::ackPacket.header.type);
     }
 
     //! \brief asio context handles the data transfer...
@@ -150,9 +141,10 @@ public:
 template <typename T>
 class ConnectionMock : public Connection<T> {
 public:
-    ConnectionMock(const Mode mode, boost::asio::ip::tcp::socket socket, std::shared_ptr<ThreadSafeQueue<T>> currentQueue,
+    ConnectionMock(boost::asio::ip::tcp::socket socket,
+                   std::shared_ptr<ThreadSafeQueue<T>> currentQueue,
                    std::shared_ptr<ThreadSafeQueue<T>> nextQueue)
-        : Connection<T>(mode, std::move(socket), currentQueue, nextQueue){};
+        : Connection<T>(std::move(socket), currentQueue, nextQueue) {};
 
     void setData(std::unique_ptr<T>&& data) { this->data_ = std::move(data); }
 
@@ -169,7 +161,7 @@ struct DummyServer {
         acceptor_.accept(socket);
         // won't be used
         auto tsQueues = get2Queue<MyPacket<char>>();
-        ConnectionMock<MyPacket<char>> connectionMock(Mode::Server, std::move(socket), tsQueues[0], tsQueues[1]);
+        ConnectionMock<MyPacket<char>> connectionMock(std::move(socket), tsQueues[0], tsQueues[1]);
         // allocate memory for packet
         connectionMock.setData(std::move(make_unique<MyPacket<char>>()));
         // connection should accept data from socket

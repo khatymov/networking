@@ -11,9 +11,9 @@ ABSOLUTE_PATH="$(realpath "$SCRIPT_DIR")"
 #chmod +x ${BUILD_SCRIPT}
 #${BUILD_SCRIPT}
 
-build_dir="cmake-build-debug"
+build_dir="build"
 bin="./network"
-data_path="../data/callAlex.mp4"
+data_path="../data/Somedata.txt"
 cd ${ABSOLUTE_PATH}/../${build_dir}
 #echo ${ABSOLUTE_PATH}/../build
 #echo Run server and a few client simultaniously

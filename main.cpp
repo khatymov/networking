@@ -5,18 +5,15 @@
 #include <iostream>
 #include <span>
 
-#include "pch.h"
-
-#include "consoleParams.h"
-
 #include "client_handler.h"
+#include "consoleParams.h"
+#include "pch.h"
 #include "server.h"
 
 using namespace std;
 using namespace network;
 
 int main(int argc, char* argv[]) {
-
     spdlog::default_logger()->set_level(spdlog::level::debug);
 
     const auto args = std::span(argv, size_t(argc));
@@ -24,6 +21,7 @@ int main(int argc, char* argv[]) {
         cout << "Usage:\n";
         cout << "If server:  ./networking 127.0.0.1 1234\n";
         cout << "If client:  ./networking 127.0.0.1 1234 /path/to/file\n";
+        return EXIT_FAILURE;
     }
     // arg1 = ip | arg2 = port number
     ConsoleParams consoleParams(args[1], args[2]);
@@ -47,6 +45,5 @@ int main(int argc, char* argv[]) {
         cerr << "Exception in main: " << error.what() << endl;
     }
 
-
-    return 0;
+    return EXIT_SUCCESS;
 }

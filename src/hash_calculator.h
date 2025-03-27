@@ -8,11 +8,11 @@
 #include "pch.h"
 namespace network {
 
-class HashCalculator {
-public:
-    static std::string getFileHash(const std::string& filename);
-};
+    class HashCalculator {
+    public:
+        static std::string getFileHash(const std::string& filename);
+    };
 
-} // namespace network
+}  // namespace network
 
 #endif  // NETWORKING_HASHCALCULATOR_H

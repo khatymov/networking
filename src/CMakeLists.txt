@@ -1,26 +1,28 @@
 cmake_minimum_required(VERSION 3.19)
 project(network_lib)
-# Source files
+
 set(SOURCE_FILES
     hash_calculator.cpp
+    pch.cpp
     timer.cpp
 )
 
 set(HEADER_FILES
-    defs.h
-    my_packet.h
-    thread_safe_queue.h
-    data_processor_interface.h
-    connection.h
-    file_reader.h
-    file_writer.h
-    decryptor.h
-    encryptor.h
-    session.h
-    server.h
     client_handler.h
     consoleParams.h
+    connection.h
+    data_processor_interface.h
+    decryptor.h
+    defs.h
+    encryptor.h
+    file_reader.h
+    file_writer.h
     hash_calculator.h
+    my_packet.h
+    pch.h
+    server.h
+    session.h
+    thread_safe_queue.h
     timer.h
 )
 

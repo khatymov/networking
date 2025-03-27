@@ -1,30 +1,29 @@
-#include "gtest/gtest.h"
-
 #include "encryption_test.h"
 
 #include "file_handler.h"
+#include "gtest/gtest.h"
 
 using namespace std;
 using namespace testing;
 
-//To delete
+// To delete
 #include <iostream>
 
 #include "cryptographer.h"
 
-//TEST(test_encryption, test_char_array) {
+// TEST(test_encryption, test_char_array) {
 //
-//    // Client side
-//    Packet packetClient;
-//    FileHandler fileReader;
-//    fileReader.open("../../data/Somedata.txt", "rb");
-//    CryptoPacket cryptoPacket;
-//    Cryptographer cryptoClient;
-//    if (!cryptoClient.setKey("myKey")) {
-//        std::cerr << "Set a key for encryption" << std::endl;
-//        exit(1);
-//    }
-//    // Server side
+//     // Client side
+//     Packet packetClient;
+//     FileHandler fileReader;
+//     fileReader.open("../../data/Somedata.txt", "rb");
+//     CryptoPacket cryptoPacket;
+//     Cryptographer cryptoClient;
+//     if (!cryptoClient.setKey("myKey")) {
+//         std::cerr << "Set a key for encryption" << std::endl;
+//         exit(1);
+//     }
+//     // Server side
 ////    Packet packetServer;
 //    FileHandler fileWriter;
 //    fileWriter.open("recovered.txt", "w");
@@ -46,7 +45,7 @@ using namespace testing;
 //    } while (true);
 //}
 //
-//TEST(test_encryption, test_file_name) {
+// TEST(test_encryption, test_file_name) {
 //    std::string fileName("tmp.txt");
 //    // encrypt plain packet into crypto packet
 //    CryptoPacket cryptoPacket;

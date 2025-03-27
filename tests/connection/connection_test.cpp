@@ -1,6 +1,6 @@
-#include "gtest/gtest.h"
-
 #include "connection_test.h"
+
+#include "gtest/gtest.h"
 #include "packet.h"
 #include "socket_messenger/socket_messenger.h"
 
@@ -9,27 +9,21 @@ using namespace testing;
 using namespace boost::asio;
 using namespace boost::asio::ip;
 
-
 int port = 1234;
 std::string host("127.0.0.1");
 
 class SimpleClient {
 public:
     SimpleClient(const std::string ip, const unsigned short port)
-        : m_endpoint{address::from_string(ip), port}
-        , m_socket{m_context}
-    {
-    }
+        : m_endpoint{address::from_string(ip), port}, m_socket{m_context} {}
 
     ~SimpleClient() = default;
 
 public:
-
     bool connect() {
         boost::system::error_code ec;
         m_socket.connect(m_endpoint, ec);
-        if (ec)
-        {
+        if (ec) {
             spdlog::error("failed to connect, error: {}", ec.message());
             return false;
         }
@@ -43,9 +37,9 @@ public:
         Packet packet;
         memcpy(packet.payload, data, DATA_SIZE);
         boost::system::error_code ec;
-        write(m_socket, boost::asio::buffer(&packet.payload, sizeof(packet.payload)), transfer_exactly(sizeof(packet.payload)), ec);
-        if (ec)
-        {
+        write(m_socket, boost::asio::buffer(&packet.payload, sizeof(packet.payload)),
+              transfer_exactly(sizeof(packet.payload)), ec);
+        if (ec) {
             spdlog::error("Client send packet error: {}", ec.message());
             return false;
         }
@@ -54,20 +48,18 @@ public:
     }
 
     bool isPongable() {
-
-        //send ping packet
+        // send ping packet
         Packet packet;
         packet.header.type = Packet::Type::Exit;
         packet.header.length = 0;
         boost::system::error_code ec;
         spdlog::debug("Client, wait ping");
-        //wait for ping packet
+        // wait for ping packet
         if (!readFromSocket(m_socket, packet, ec)) {
             return false;
         }
 
-        if (packet.header.type == Packet::Type::Ping)
-        {
+        if (packet.header.type == Packet::Type::Ping) {
             spdlog::debug("Client got Packet::Ping with size {}", packet.header.length);
         }
 
@@ -98,7 +90,7 @@ public:
         FileHandler fileHandler;
         if (fileHandler.isFileExist(fileName)) {
             spdlog::error("File doesn't exist");
-//            return false;
+            //            return false;
         }
 
         fileHandler.open(fileName, "rb");
@@ -120,11 +112,10 @@ public:
 
         do {
             fileHandler.read(packet);
-//            packet.header.type = Packet::Type::FileData;
+            //            packet.header.type = Packet::Type::FileData;
             const bool everything_done = packet.header.length == 0;
 
-            if (everything_done)
-            {
+            if (everything_done) {
                 break;
             }
 
@@ -133,7 +124,8 @@ public:
             }
 
             if (!readFromSocket(m_socket, packet, ec)) {
-                spdlog::debug("Didn't get ack pack Packet::Type::FileData {}", packet.header.length);
+                spdlog::debug("Didn't get ack pack Packet::Type::FileData {}",
+                              packet.header.length);
             } else if (packet.header.type == Packet::Type::Ack) {
                 spdlog::debug("ACK PACK Packet::Type::FileData {}", packet.header.length);
             }
@@ -169,7 +161,6 @@ private:
     io_context m_context;
     tcp::endpoint m_endpoint;
     tcp::socket m_socket;
-
 };
 
 bool doClientConnection() {
@@ -189,7 +180,8 @@ bool checkPingPong() {
 
 bool sendFileNamePacket() {
     SimpleClient simpleClient(host, port);
-    return simpleClient.connect() and simpleClient.isPongable() and simpleClient.sendFileNamePacket();
+    return simpleClient.connect() and simpleClient.isPongable() and
+           simpleClient.sendFileNamePacket();
 }
 
 bool sendFilePacket(string filename) {
@@ -202,10 +194,11 @@ TEST(test_connection, test_connection) {
     tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
 
     tcp::acceptor myAcceptor(ioContext, endpoint);
-    myAcceptor.async_accept([&] (boost::system::error_code ec, tcp::socket socket) {
+    myAcceptor.async_accept([&](boost::system::error_code ec, tcp::socket socket) {
         if (!ec) {
             spdlog::info("New connection");
-            std::shared_ptr<ConnectionInterface> newConnection = std::make_shared<ConnectionInterface>(ioContext, std::move(socket));
+            std::shared_ptr<ConnectionInterface> newConnection =
+                std::make_shared<ConnectionInterface>(ioContext, std::move(socket));
             EXPECT_TRUE(newConnection->ConnectToClient());
         } else {
             spdlog::error("Error has occurred during acceptance: {}", ec.message());
@@ -217,16 +210,17 @@ TEST(test_connection, test_connection) {
     ioContext.run();
 }
 
-//Get a message and print it
+// Get a message and print it
 TEST(test_connection, test_process) {
     io_context ioContext;
     tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
 
     tcp::acceptor myAcceptor(ioContext, endpoint);
-    myAcceptor.async_accept([&] (boost::system::error_code ec, tcp::socket socket) {
+    myAcceptor.async_accept([&](boost::system::error_code ec, tcp::socket socket) {
         if (!ec) {
             spdlog::info("New connection");
-            std::shared_ptr<ConnectionInterface> newConnection = std::make_shared<ConnectionInterface>(ioContext, std::move(socket));
+            std::shared_ptr<ConnectionInterface> newConnection =
+                std::make_shared<ConnectionInterface>(ioContext, std::move(socket));
             if (newConnection->ConnectToClient()) {
                 newConnection->Process();
             }
@@ -245,10 +239,11 @@ TEST(test_file_writer_connection, test_connection) {
     tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
 
     tcp::acceptor myAcceptor(ioContext, endpoint);
-    myAcceptor.async_accept([&] (boost::system::error_code ec, tcp::socket socket) {
+    myAcceptor.async_accept([&](boost::system::error_code ec, tcp::socket socket) {
         if (!ec) {
             spdlog::info("New connection");
-            std::shared_ptr<FileWriterConnection> newConnection = std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
+            std::shared_ptr<FileWriterConnection> newConnection =
+                std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
             EXPECT_TRUE(newConnection->ConnectToClient());
         } else {
             spdlog::error("Error has occurred during acceptance: {}", ec.message());
@@ -260,16 +255,16 @@ TEST(test_file_writer_connection, test_connection) {
     ioContext.run();
 }
 
-
 TEST(test_file_writer_connection, test_process) {
     io_context ioContext;
     tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
 
     tcp::acceptor myAcceptor(ioContext, endpoint);
-    myAcceptor.async_accept([&] (boost::system::error_code ec, tcp::socket socket) {
+    myAcceptor.async_accept([&](boost::system::error_code ec, tcp::socket socket) {
         if (!ec) {
             spdlog::info("New connection");
-            std::shared_ptr<FileWriterConnection> newConnection = std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
+            std::shared_ptr<FileWriterConnection> newConnection =
+                std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
             if (newConnection->ConnectToClient()) {
                 newConnection->Process();
             }
@@ -283,16 +278,17 @@ TEST(test_file_writer_connection, test_process) {
     ioContext.run();
 }
 
-//Get a message and print it
+// Get a message and print it
 TEST(test_file_writer_connection, test_ping_pong) {
     io_context ioContext;
     tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
 
     tcp::acceptor myAcceptor(ioContext, endpoint);
-    myAcceptor.async_accept([&] (boost::system::error_code ec, tcp::socket socket) {
+    myAcceptor.async_accept([&](boost::system::error_code ec, tcp::socket socket) {
         if (!ec) {
             spdlog::info("New connection");
-            std::shared_ptr<FileWriterConnection> newConnection = std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
+            std::shared_ptr<FileWriterConnection> newConnection =
+                std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
             if (newConnection->ConnectToClient()) {
                 EXPECT_TRUE(newConnection->isPingable());
             }
@@ -309,40 +305,42 @@ TEST(test_file_writer_connection, test_ping_pong) {
 }
 
 ////Get a message and print it
-//TEST(test_file_writer_connection, test_ping_pong_unique) {
-//    io_context ioContext;
-//    tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
+// TEST(test_file_writer_connection, test_ping_pong_unique) {
+//     io_context ioContext;
+//     tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
 //
-//    tcp::acceptor myAcceptor(ioContext, endpoint);
-//    myAcceptor.async_accept([&] (boost::system::error_code ec, tcp::socket socket) {
-//        if (!ec) {
-//            spdlog::info("New connection");
-//            std::unique_ptr<FileWriterConnection> newConnection = std::make_unique<FileWriterConnection>(ioContext, std::move(socket));
-//            if (newConnection->ConnectToClient()) {
-//                EXPECT_TRUE(newConnection->isPingable());
-//            }
-//        } else {
-//            spdlog::error("Error has occurred during acceptance: {}", ec.message());
-//        }
-//    });
+//     tcp::acceptor myAcceptor(ioContext, endpoint);
+//     myAcceptor.async_accept([&] (boost::system::error_code ec, tcp::socket socket) {
+//         if (!ec) {
+//             spdlog::info("New connection");
+//             std::unique_ptr<FileWriterConnection> newConnection =
+//             std::make_unique<FileWriterConnection>(ioContext, std::move(socket)); if
+//             (newConnection->ConnectToClient()) {
+//                 EXPECT_TRUE(newConnection->isPingable());
+//             }
+//         } else {
+//             spdlog::error("Error has occurred during acceptance: {}", ec.message());
+//         }
+//     });
 //
-//    auto future = std::async(std::launch::async, checkPingPong);
+//     auto future = std::async(std::launch::async, checkPingPong);
 //
-//    ioContext.run();
-//    auto isPongable = future.get();
-//    EXPECT_TRUE(isPongable);
-//}
+//     ioContext.run();
+//     auto isPongable = future.get();
+//     EXPECT_TRUE(isPongable);
+// }
 
-//Get a message and print it
+// Get a message and print it
 TEST(test_file_writer_connection, test_file) {
     io_context ioContext;
     tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
 
     tcp::acceptor myAcceptor(ioContext, endpoint);
-    myAcceptor.async_accept([&] (boost::system::error_code ec, tcp::socket socket) {
+    myAcceptor.async_accept([&](boost::system::error_code ec, tcp::socket socket) {
         if (!ec) {
             spdlog::info("New connection");
-            std::shared_ptr<FileWriterConnection> newConnection = std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
+            std::shared_ptr<FileWriterConnection> newConnection =
+                std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
             if (newConnection->ConnectToClient() and newConnection->isPingable()) {
                 newConnection->FileProcess();
             }
@@ -358,16 +356,17 @@ TEST(test_file_writer_connection, test_file) {
     EXPECT_TRUE(isPacketSent);
 }
 
-//Get a message and print it
+// Get a message and print it
 TEST(test_file_writer_connection, test_send_file) {
     io_context ioContext;
     tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
 
     tcp::acceptor myAcceptor(ioContext, endpoint);
-    myAcceptor.async_accept([&] (boost::system::error_code ec, tcp::socket socket) {
+    myAcceptor.async_accept([&](boost::system::error_code ec, tcp::socket socket) {
         if (!ec) {
             spdlog::info("New connection");
-            std::shared_ptr<FileWriterConnection> newConnection = std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
+            std::shared_ptr<FileWriterConnection> newConnection =
+                std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
             if (newConnection->ConnectToClient()) {
                 newConnection->FileProcess();
             }
@@ -378,26 +377,26 @@ TEST(test_file_writer_connection, test_send_file) {
 
     auto future = std::async(std::launch::async, sendFilePacket, "Somedata.txt");
     ioContext.run();
-//    auto thrContext = std::thread([&]() { ioContext.run(); });
-//    if (thrContext.joinable())
-//        thrContext.join();
+    //    auto thrContext = std::thread([&]() { ioContext.run(); });
+    //    if (thrContext.joinable())
+    //        thrContext.join();
 
     auto isPacketSent = future.get();
     EXPECT_TRUE(isPacketSent);
 }
 
 TEST(test_file_writer_connection, test_communicate_client) {
-
     spdlog::info("test_communicate_client");
 
     io_context ioContext;
     tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
 
     tcp::acceptor myAcceptor(ioContext, endpoint);
-    myAcceptor.async_accept([&] (boost::system::error_code ec, tcp::socket socket) {
+    myAcceptor.async_accept([&](boost::system::error_code ec, tcp::socket socket) {
         if (!ec) {
             spdlog::info("New connection");
-            std::shared_ptr<FileWriterConnection> newConnection = std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
+            std::shared_ptr<FileWriterConnection> newConnection =
+                std::make_shared<FileWriterConnection>(ioContext, std::move(socket));
             if (newConnection->ConnectToClient()) {
                 newConnection->run();
             }
@@ -408,14 +407,11 @@ TEST(test_file_writer_connection, test_communicate_client) {
 
     auto future = std::async(std::launch::async, sendFilePacket, "Somedata.txt");
 
-    jthread t([&] () {
-        ioContext.run();
-    });
+    jthread t([&]() { ioContext.run(); });
 
     auto isPacketSent = future.get();
     EXPECT_TRUE(isPacketSent);
 }
-
 
 class Session : public std::enable_shared_from_this<Session> {
 public:
@@ -424,9 +420,7 @@ public:
         ack_packet.header.length = 0;
     }
 
-    void start() {
-        do_read();
-    }
+    void start() { do_read(); }
 
 private:
     tcp::socket socket_;
@@ -450,8 +444,10 @@ private:
         socket_.async_read_some(boost::asio::buffer(&_packet.payload, _packet.header.length),
                                 [this, self](boost::system::error_code ec, std::size_t length) {
                                     if (!ec) {
-                                        spdlog::debug("Packet payload: {}", string(_packet.payload, _packet.header.length));
-//                                        do_read();
+                                        spdlog::debug(
+                                            "Packet payload: {}",
+                                            string(_packet.payload, _packet.header.length));
+                                        //                                        do_read();
                                         do_write(ack_packet);
                                     }
                                 });
@@ -459,22 +455,24 @@ private:
 
     void do_write(Packet& packet) {
         auto self(shared_from_this());
-        boost::asio::async_write(socket_, boost::asio::buffer(&_packet.header, sizeof(_packet.header)),
-                                 [this, self, packet](boost::system::error_code ec, std::size_t /*length*/) {
-                                     if (!ec) {
-                                         do_write_body(packet);
-                                     }
-                                 });
+        boost::asio::async_write(
+            socket_, boost::asio::buffer(&_packet.header, sizeof(_packet.header)),
+            [this, self, packet](boost::system::error_code ec, std::size_t /*length*/) {
+                if (!ec) {
+                    do_write_body(packet);
+                }
+            });
     }
 
     void do_write_body(Packet packet) {
         auto self(shared_from_this());
-        boost::asio::async_write(socket_, boost::asio::buffer(&_packet.payload, _packet.header.length),
-                                 [this, self, packet](boost::system::error_code ec, std::size_t /*length*/) {
-                                     if (!ec) {
-                                         do_read();
-                                     }
-                                 });
+        boost::asio::async_write(
+            socket_, boost::asio::buffer(&_packet.payload, _packet.header.length),
+            [this, self, packet](boost::system::error_code ec, std::size_t /*length*/) {
+                if (!ec) {
+                    do_read();
+                }
+            });
     }
 };
 
@@ -489,17 +487,15 @@ private:
     tcp::acceptor acceptor_;
 
     void do_accept() {
-        acceptor_.async_accept(
-            [this](boost::system::error_code ec, tcp::socket socket) {
-                if (!ec) {
-                    std::make_shared<Session>(std::move(socket))->start();
-                }
+        acceptor_.async_accept([this](boost::system::error_code ec, tcp::socket socket) {
+            if (!ec) {
+                std::make_shared<Session>(std::move(socket))->start();
+            }
 
-                do_accept();
-            });
+            do_accept();
+        });
     }
 };
-
 
 TEST(test_file_writer_connection, test_some_server) {
     try {
@@ -518,8 +514,7 @@ TEST(test_file_writer_connection, test_some_server) {
 
         auto isPacketSent = future.get();
         EXPECT_TRUE(isPacketSent);
-    }
-    catch (std::exception& e) {
+    } catch (std::exception& e) {
         std::cerr << "Exception: " << e.what() << "\n";
     }
 }

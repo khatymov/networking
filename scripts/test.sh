@@ -22,9 +22,10 @@ conan install . --output-folder="${build_dir}" --build=missing || exit $?
 cd "${build_dir}" || exit $?
 
 # Build
-cmake ../tests/ -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release || exit $?
-cmake --build . --config Release || exit $?
+cmake .. -G "Unix Makefiles"  -DCMAKE_TOOLCHAIN_FILE="conan_toolchain.cmake" -DCMAKE_BUILD_TYPE=Release || exit $?
+cmake --build . || exit $?
 
+cd "tests" || exit $?
 # Run all unit tests
 ./run_unit_tests || exit $?
 

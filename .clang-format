@@ -1,6 +1,6 @@
 BasedOnStyle: Google
 Language: Cpp
-ColumnLimit: 160
+ColumnLimit: 100
 PointerAlignment: Left
 NamespaceIndentation: All
 IndentWidth: 4

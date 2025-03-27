@@ -7,8 +7,7 @@
 #include <chrono>
 #include <iostream>
 
-class Timer
-{
+class Timer {
     Timer(const Timer&) = delete;
     Timer(Timer&&) = delete;
     Timer& operator=(const Timer&) = delete;
