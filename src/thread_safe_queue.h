@@ -13,9 +13,6 @@
 
 namespace network {
 
-// entity of a class should be a smart pointer
-// please, do not create it on a stack
-
 template <typename T>
 class ThreadSafeQueue {
 public:
