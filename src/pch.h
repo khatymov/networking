@@ -1,5 +1,7 @@
 #pragma once
 
+#include <openssl/sha.h>
+
 #include <array>
 #include <boost/asio.hpp>
 #include <boost/asio/completion_condition.hpp>
@@ -13,8 +15,6 @@
 #include <queue>
 #include <string>
 #include <thread>
-
-#include <openssl/sha.h>
 
 #include "cryptopp/aes.h"
 #include "cryptopp/modes.h"

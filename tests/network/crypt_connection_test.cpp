@@ -1,10 +1,10 @@
 #include "crypt_connection_test.h"
 
-#include "pch.h"
-#include "my_packet.h"
-#include "thread_safe_queue.h"
 #include "connection.h"
 #include "defs_mock.h"
+#include "my_packet.h"
+#include "pch.h"
+#include "thread_safe_queue.h"
 
 using namespace std;
 using namespace testing;
@@ -19,10 +19,7 @@ using namespace network;
 // thread 1 get from socket
 // thread 2 decrypt and compare
 
-
 // packs: Data + exit Pack
-
-
 
 void runClient() {
     auto tsQueues = get3Queue<CryptoPacket>();
@@ -35,7 +32,6 @@ void runClient() {
     // create encryptor
     auto encryptor = std::make_unique<Encryptor<CryptoPacket>>(tsQueues[1], tsQueues[2]);
 
-
     // create connection entity
     boost::asio::io_context context;
     boost::asio::ip::tcp::endpoint endpoint(address::from_string(ipDefualt),
@@ -43,11 +39,12 @@ void runClient() {
     boost::asio::ip::tcp::socket socket(context);
     boost::system::error_code errorCode;
     socket.connect(endpoint, errorCode);
-    auto connection = std::make_unique<Connection<CryptoPacket>>(std::move(socket), tsQueues[2], tsQueues[0]);
+    auto connection =
+        std::make_unique<Connection<CryptoPacket>>(std::move(socket), tsQueues[2], tsQueues[0]);
 
-    threads.emplace_back([packetGen = std::move(packetGen)]{
+    threads.emplace_back([packetGen = std::move(packetGen)] {
         auto packs = getAlphabetPacks<CryptoPacket>();
-        for (auto& pack: packs) {
+        for (auto& pack : packs) {
             packetGen->waitNextData();
             packetGen->set(std::move(pack));
             packetGen->notifyComplete();
@@ -59,7 +56,7 @@ void runClient() {
     });
 
     // encrypt
-    threads.emplace_back([encryptor = std::move(encryptor)]{
+    threads.emplace_back([encryptor = std::move(encryptor)] {
         while (not encryptor->isDone()) {
             encryptor->waitNextData();
             encryptor->processData();
@@ -67,16 +64,15 @@ void runClient() {
         }
     });
 
-    threads.emplace_back([connection = std::move(connection)]{
+    threads.emplace_back([connection = std::move(connection)] {
         while (not connection->isDone()) {
             connection->waitNextData();
             connection->processData();
             connection->notifyComplete();
         }
-
     });
 
-    for (auto& th: threads) {
+    for (auto& th : threads) {
         // if joinable
         th.join();
     }
@@ -91,9 +87,10 @@ void runServer() {
     ip::tcp::acceptor acceptor_(ioContext_, tcp::endpoint(make_address(ipDefualt), portDefualt));
     tcp::socket socket(ioContext_);
     acceptor_.accept(socket);
-    auto connection = std::make_unique<Connection<CryptoPacket>>(std::move(socket), tsQueues[0], tsQueues[1]);
+    auto connection =
+        std::make_unique<Connection<CryptoPacket>>(std::move(socket), tsQueues[0], tsQueues[1]);
     // connection
-    threads.emplace_back([connection = std::move(connection)]{
+    threads.emplace_back([connection = std::move(connection)] {
         while (not connection->isDone()) {
             connection->waitNextData();
             connection->processData();
@@ -105,10 +102,10 @@ void runServer() {
     auto decryptor = std::make_unique<Decryptor<CryptoPacket>>(tsQueues[1], tsQueues[2]);
 
     // collector
-    auto packetCollector = std::make_unique<PacketCollectorMock<CryptoPacket>>(tsQueues[2], tsQueues[0]);
+    auto packetCollector =
+        std::make_unique<PacketCollectorMock<CryptoPacket>>(tsQueues[2], tsQueues[0]);
 
-
-    threads.emplace_back([decryptor = std::move(decryptor)]{
+    threads.emplace_back([decryptor = std::move(decryptor)] {
         while (not decryptor->isDone()) {
             decryptor->waitNextData();
             decryptor->processData();
@@ -116,8 +113,7 @@ void runServer() {
         }
     });
 
-
-    threads.emplace_back([&packetCollector]{
+    threads.emplace_back([&packetCollector] {
         while (not packetCollector->isDone()) {
             packetCollector->waitNextData();
             packetCollector->collect();
@@ -126,7 +122,7 @@ void runServer() {
     });
 
     // compare results with alpfaPacks
-    for (auto& th: threads) {
+    for (auto& th : threads) {
         // if joinable
         th.join();
     }
@@ -136,11 +132,9 @@ void runServer() {
         EXPECT_EQ(packetCollector->dataVec[i]->header, expectedPacks[i]->header);
         EXPECT_EQ(packetCollector->dataVec[i]->data[0], expectedPacks[i]->data[0]);
     }
-
 }
 
 TEST(CryptoConnectionTest, test_sendReceiveCryptoPacks) {
-
     std::thread serverThread(runServer);
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
     std::thread clientThread(runClient);

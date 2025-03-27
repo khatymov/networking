@@ -2,10 +2,8 @@
 
 #include <iostream>
 
-#include "my_packet.h"
-#include "thread_safe_queue.h"
-
 #include "gtest/gtest.h"
+#include "thread_safe_queue.h"
 
 using namespace std;
 using namespace testing;
@@ -17,18 +15,16 @@ using namespace network;
 // Test thread safe queue
 // create a mock class to add some methods to ThreadSafeQueue
 template <typename T = int>
-class ThreadSafeQueueMock: public ThreadSafeQueue<T>{
+class ThreadSafeQueueMock : public ThreadSafeQueue<T> {
 public:
     // initially only one ThreadSafeQueue should create data that afterwords will be used in others
     // ThreadSafeQueue. Only that object of ThreadSafeQueue should have isPrimaryQueue=true
     /**
-    * @brief Constructor
+     * @brief Constructor
      */
     explicit ThreadSafeQueueMock(bool isPrimaryQueue) : ThreadSafeQueue<T>(isPrimaryQueue) {}
 
-    auto getQueueSize() const {
-        return this->queue_.size();
-    }
+    auto getQueueSize() const { return this->queue_.size(); }
 };
 
 // Test in one thread
@@ -36,7 +32,8 @@ public:
 // get these ptrs
 // verify that queue is empty
 TEST(test_thread_safe_queue, test_set_qet) {
-    std::shared_ptr<ThreadSafeQueueMock<int>> tsQueue = std::make_shared<ThreadSafeQueueMock<int>>(true);
+    std::shared_ptr<ThreadSafeQueueMock<int>> tsQueue =
+        std::make_shared<ThreadSafeQueueMock<int>>(true);
     std::queue<std::unique_ptr<int>> valsQueue;
     for (int i = 0; i < QUEUE_DATA_NUM; i++) {
         auto data_ptr = tsQueue->get();
@@ -58,7 +55,8 @@ TEST(test_thread_safe_queue, test_set_qet) {
 
 // add text where we put more than capacity and catch the exception
 TEST(test_thread_safe_queue, test_overflow_exception) {
-    std::shared_ptr<ThreadSafeQueueMock<int>> tsQueue = std::make_shared<ThreadSafeQueueMock<int>>(true);
+    std::shared_ptr<ThreadSafeQueueMock<int>> tsQueue =
+        std::make_shared<ThreadSafeQueueMock<int>>(true);
     EXPECT_THROW(tsQueue->set(std::move(make_unique<int>(42))), std::runtime_error);
 }
 
@@ -77,12 +75,14 @@ TEST(test_thread_safe_queue, test_two_thread) {
     size_t numComponents = 2;
     std::vector<std::thread> threads;
     threads.reserve(numComponents);
-    std::vector<std::shared_ptr<ThreadSafeQueueMock<int>>> tsQueues = {std::make_shared<ThreadSafeQueueMock<int>>(true),
-                                                                       std::make_shared<ThreadSafeQueueMock<int>>(false)};
-    // final value that after sending data from one queue to another this value will be a sign of finish
+    std::vector<std::shared_ptr<ThreadSafeQueueMock<int>>> tsQueues = {
+        std::make_shared<ThreadSafeQueueMock<int>>(true),
+        std::make_shared<ThreadSafeQueueMock<int>>(false)};
+    // final value that after sending data from one queue to another this value will be a sign of
+    // finish
     const int finalVal = 8;
 
-    threads.emplace_back([curQueue = tsQueues[0], nextQueue = tsQueues[1], finalVal] () {
+    threads.emplace_back([curQueue = tsQueues[0], nextQueue = tsQueues[1], finalVal]() {
         unique_ptr<int> data;
         bool isDone = false;
         while (data == nullptr) {
@@ -100,7 +100,7 @@ TEST(test_thread_safe_queue, test_two_thread) {
         }
     });
 
-    threads.emplace_back([curQueue = tsQueues[1], nextQueue = tsQueues[0], finalVal] () {
+    threads.emplace_back([curQueue = tsQueues[1], nextQueue = tsQueues[0], finalVal]() {
         unique_ptr<int> data;
         bool isDone = false;
         int dataVal = 0;
@@ -122,7 +122,7 @@ TEST(test_thread_safe_queue, test_two_thread) {
         }
     });
 
-    for (auto& curThread: threads) {
+    for (auto& curThread : threads) {
         curThread.join();
     }
 
